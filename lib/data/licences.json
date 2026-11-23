@@ -1,0 +1,162 @@
+[
+ {
+  "id": "quran-audio",
+  "group": "Permission needed",
+  "title": "Quran recitation audio (every ayah)",
+  "need": "Written commercial licence from a reciter/producer (streaming + caching, with credit), or commission a qari and own the recordings. Option: Quran Foundation API (check commercial terms).",
+  "state": "Hidden. Turn on with env LICENSED_RECITATION=1 after licence.",
+  "status": "needed"
+ },
+ {
+  "id": "makkah-adhan",
+  "group": "Permission needed",
+  "title": "Makkah (Masjid al-Haram) adhan",
+  "need": "Permission from the General Authority for the Affairs of the Two Holy Mosques or the recording owner. Makkah uploads found online were copied from YouTube.",
+  "state": "Not included. Never label another recording “Makkah”.",
+  "status": "needed"
+ },
+ {
+  "id": "famous-nasheeds",
+  "group": "Permission needed",
+  "title": "Famous nasheeds (Soldiers of Allah, al-Muqit, Sami Yusuf, Maher Zain, Omar Esa, Bukhatir…)",
+  "need": "Licence from each artist or label.",
+  "state": "Not included.",
+  "status": "needed"
+ },
+ {
+  "id": "translations",
+  "group": "Permission needed",
+  "title": "Other Quran translations (Sahih International, Khattab, Hilali-Khan, Asad, Urdu, Tamil, Sinhala…)",
+  "need": "Publisher permission per translation. ClearQuran is free for commercial use with credit and unchanged wording.",
+  "state": "Only Pickthall (public domain) shown.",
+  "status": "needed"
+ },
+ {
+  "id": "map-tiles",
+  "group": "Permission needed",
+  "title": "Map tiles at very large scale",
+  "need": "OpenFreeMap is free with no SLA. At scale: self-host tiles (set MAP_STYLE_URL) or a paid provider (MapTiler / Stadia).",
+  "state": "Using OpenFreeMap.",
+  "status": "needed"
+ },
+ {
+  "id": "google-maps",
+  "group": "Permission needed",
+  "title": "Google Maps inside the app (optional)",
+  "need": "Google Maps Platform billing + terms; no copying Google places data into our database.",
+  "state": "Only free “Open in Google Maps” / directions links.",
+  "status": "condition"
+ },
+ {
+  "id": "trademark",
+  "group": "Permission needed",
+  "title": "“Shukr” name & logo",
+  "need": "Trademark search and registration in key markets.",
+  "state": "Not done.",
+  "status": "needed"
+ },
+ {
+  "id": "dmca",
+  "group": "Permission needed",
+  "title": "Copyright complaints for user uploads",
+  "need": "Register a DMCA agent (US Copyright Office) and publish a takedown policy.",
+  "state": "Upload rights confirmation exists; agent not registered.",
+  "status": "needed"
+ },
+ {
+  "id": "legal-docs",
+  "group": "Permission needed",
+  "title": "Privacy policy, Terms, children’s privacy, PayHere agreement",
+  "need": "Lawyer review before launch.",
+  "state": "Partly drafted.",
+  "status": "needed"
+ },
+ {
+  "id": "tanzil",
+  "group": "Allowed — keep conditions",
+  "title": "Quran Arabic text (Tanzil)",
+  "need": "CC BY 3.0 — credit + link tanzil.net; text verbatim.",
+  "state": "Credited.",
+  "status": "condition"
+ },
+ {
+  "id": "pickthall",
+  "group": "Allowed — keep conditions",
+  "title": "Pickthall English (1930)",
+  "need": "Public domain — credit translator.",
+  "state": "Credited.",
+  "status": "done"
+ },
+ {
+  "id": "hadith-ar",
+  "group": "Allowed — keep conditions",
+  "title": "Hadith Arabic texts",
+  "need": "Public domain / Unlicense.",
+  "state": "Used.",
+  "status": "done"
+ },
+ {
+  "id": "own-english",
+  "group": "Allowed — keep conditions",
+  "title": "Shukr’s own English (hadith, duas, adhkar, akhirah)",
+  "need": "Ours. Recommend scholar review for accuracy.",
+  "state": "Not yet reviewed.",
+  "status": "condition"
+ },
+ {
+  "id": "adhans",
+  "group": "Allowed — keep conditions",
+  "title": "20 adhan recordings",
+  "need": "CC0 / CC BY / CC BY-SA — keep credits page; trimmed CC BY-SA files stay CC BY-SA.",
+  "state": "Credits page live.",
+  "status": "condition"
+ },
+ {
+  "id": "sounds",
+  "group": "Allowed — keep conditions",
+  "title": "61 library sounds (nasheeds, vocals, nature)",
+  "need": "Same as adhans. Human listen for instruments on the 20 newest nasheeds.",
+  "state": "Listen check pending.",
+  "status": "condition"
+ },
+ {
+  "id": "osm",
+  "group": "Allowed — keep conditions",
+  "title": "OpenStreetMap data",
+  "need": "ODbL — attribution must stay visible on the map.",
+  "state": "Shown on map.",
+  "status": "done"
+ },
+ {
+  "id": "oss",
+  "group": "Allowed — keep conditions",
+  "title": "MapLibre, Leaflet, adhan-js, fonts (Amiri, Figtree), Twemoji",
+  "need": "Keep licence files and credits.",
+  "state": "Kept.",
+  "status": "done"
+ },
+ {
+  "id": "user-uploads",
+  "group": "Allowed — keep conditions",
+  "title": "Users’ uploads & studio nasheeds",
+  "need": "Users confirm rights on upload; respond to takedowns.",
+  "state": "Live.",
+  "status": "condition"
+ },
+ {
+  "id": "ai",
+  "group": "Allowed — keep conditions",
+  "title": "AI features (Alim, voices, captions)",
+  "need": "Check AI providers’ commercial terms; disclose AI voices.",
+  "state": "Check pending.",
+  "status": "condition"
+ },
+ {
+  "id": "feed-media",
+  "group": "Allowed — keep conditions",
+  "title": "Videos & images in the main feed",
+  "need": "Confirm each is Shukr-made or licensed.",
+  "state": "Check pending.",
+  "status": "condition"
+ }
+]

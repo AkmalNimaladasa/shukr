@@ -1,0 +1,5 @@
+const {test}=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const vm=require('node:vm');
+function helpers(){const c={};const p=require('node:path').join(__dirname,'../public/js/fyp-utils.js');vm.runInNewContext(fs.existsSync(p)?fs.readFileSync(p,'utf8').replace(/export /g,''):'',c);return c;}
+test('feed position stays within the lesson deck including the closing card',()=>{const h=helpers();assert.equal(typeof h.deckIndex,'function');assert.equal(h.deckIndex(-20,5),0);assert.equal(h.deckIndex(11,5),5);assert.equal(h.deckIndex(2,5),2);});
+test('only unique explicitly completed lessons count toward session learning',()=>{const h=helpers();assert.equal(typeof h.sessionProgress,'function');assert.equal(h.sessionProgress([{id:'a',completed:true},{id:'a',completed:true},{id:'b',completed:false}]),1);});
+test('source links never accept executable URLs',()=>{const h=helpers();assert.equal(typeof h.safeSource,'function');assert.equal(h.safeSource('javascript:alert(1)'),'');assert.equal(h.safeSource('https://quran.com/14/7'),'https://quran.com/14/7');});

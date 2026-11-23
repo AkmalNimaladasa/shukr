@@ -1,0 +1,46 @@
+const {test,before,after}=require('node:test');const assert=require('node:assert/strict');const express=require('express');const {PGlite}=require('@electric-sql/pglite');
+const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+let db,server,base,dir;
+const JPG=Buffer.concat([Buffer.from([0xFF,0xD8,0xFF,0xE0]),Buffer.alloc(200,7)]);
+const MP4=Buffer.concat([Buffer.from([0,0,0,0x18]),Buffer.from('ftypisom'),Buffer.alloc(4000,1)]);
+before(async()=>{db=new PGlite();await db.exec("CREATE TABLE users(id INT PRIMARY KEY,name TEXT);INSERT INTO users VALUES(1,'Aisha'),(2,'Bilal');CREATE TABLE profiles(user_id INT PRIMARY KEY,username TEXT,display_name TEXT,is_admin BOOLEAN DEFAULT false,banned BOOLEAN DEFAULT false);INSERT INTO profiles VALUES(1,'aisha','Aisha',false,false),(2,'bilal','Bilal',false,true);");
+ for(const s of ['schema-fyp','schema-fyp-social','schema-social-hub'])await db.exec(require('../lib/'+s));
+ dir=fs.mkdtempSync(path.join(os.tmpdir(),'shukr-ugc-'));
+ const app=express();app.use((req,res,next)=>req.path==='/api/social/media'?next():express.json()(req,res,next));
+ const ctx={app,todayFor:()=>'2026-11-20',q:(s,p)=>db.query(s,p),uploadDir:dir,auth:(req,res,next)=>{const id=+req.headers['x-user'];if(![1,2].includes(id))return res.status(401).json({error:'auth'});req.user={id,name:id===1?'Aisha':'Bilal'};next();},wrap:f=>(req,res,next)=>Promise.resolve(f(req,res,next)).catch(next)};
+ require('../lib/fyp')(ctx);require('../lib/social-hub')(ctx);require('../lib/social-uploads')(ctx);
+ app.use((e,req,res,next)=>res.status(500).json({error:e.message}));server=app.listen(0,'127.0.0.1');await new Promise(r=>server.once('listening',r));base='http://127.0.0.1:'+server.address().port;});
+after(async()=>{if(server)await new Promise(r=>server.close(r));if(db)await db.close();if(dir)fs.rmSync(dir,{recursive:true,force:true});});
+const up=(buf,type,user=1,h={})=>fetch(base+'/api/social/media',{method:'POST',headers:{'x-user':String(user),'content-type':type,...h},body:buf}).then(async r=>({status:r.status,data:await r.json()}));
+const api=(p,{user=1,method,body}={})=>fetch(base+p,{method:method||(body?'POST':'GET'),headers:{'x-user':String(user),'content-type':'application/json'},body:body&&JSON.stringify(body)}).then(async r=>({status:r.status,data:await r.json()}));
+test('uploads require auth, a real media signature and an allowed type',async()=>{
+ assert.equal((await up(JPG,'image/jpeg',0)).status,401);
+ assert.equal((await up(Buffer.from('<svg onload=alert(1)></svg>'.padEnd(64)),'image/svg+xml')).status,415);
+ assert.equal((await up(Buffer.from('<html><script>x</script></html>'.padEnd(64)),'image/jpeg')).status,415);
+ assert.equal((await up(JPG,'image/jpeg',2)).status,403);
+ const r=await up(JPG,'image/jpeg');assert.equal(r.status,201);assert.match(r.data.media.url,/^\/ugc\/[a-f0-9-]{36}\.jpg$/);
+});
+test('a video upload becomes a 9:16 reel in the feed with author and Range streaming',async()=>{
+ const v=await up(MP4,'video/mp4',1,{'x-media-width':'1080','x-media-height':'1920','x-media-duration':'12000'});assert.equal(v.status,201);
+ assert.equal((await api('/api/social/posts',{body:{mediaIds:[v.data.media.id],caption:'Morning dhikr by the sea'}})).status,400);
+ assert.equal((await api('/api/social/posts',{user:2,body:{mediaIds:[v.data.media.id],rightsConfirmed:true}})).status,403);
+ const p=await api('/api/social/posts',{body:{mediaIds:[v.data.media.id],caption:'Morning dhikr by the sea',topic:'wellbeing',rightsConfirmed:true}});
+ assert.equal(p.status,201);assert.equal(p.data.publication.format,'reel');assert.equal(p.data.publication.author.username,'aisha');
+ const feed=await api('/api/fyp?post='+encodeURIComponent(p.data.publication.id));assert.equal(feed.status,200);
+ const item=feed.data.items[0];assert.equal(item.ugc,true);assert.equal(item.quiz,null);assert.equal(item.media.height,1920);
+ const r=await fetch(base+item.media.src,{headers:{range:'bytes=0-15'}});assert.equal(r.status,206);assert.equal(r.headers.get('content-range'),`bytes 0-15/${MP4.length}`);assert.equal((await r.arrayBuffer()).byteLength,16);
+ assert.equal((await api(`/api/fyp/${encodeURIComponent(item.id)}/action`,{body:{action:'like',value:true}})).status,200);
+ assert.equal((await api(`/api/fyp/${encodeURIComponent(item.id)}/quiz`,{body:{answer:0}})).status,400);
+ assert.equal((await api('/api/social/mine')).data.posts.length,1);
+ assert.equal((await api('/api/social/posts/'+encodeURIComponent(item.id),{user:2,method:'DELETE'})).status,403);
+ assert.equal((await api('/api/social/posts/'+encodeURIComponent(item.id),{method:'DELETE'})).status,200);
+ assert.equal((await fetch(base+item.media.src)).status,404);
+});
+test('multiple photos publish as a carousel; videos cannot be mixed in; other users’ uploads are rejected',async()=>{
+ const a=(await up(JPG,'image/jpeg')).data.media.id,b=(await up(JPG,'image/jpeg')).data.media.id,v=(await up(MP4,'video/mp4')).data.media.id;
+ assert.equal((await api('/api/social/posts',{body:{mediaIds:[a,v],rightsConfirmed:true}})).status,400);
+ assert.equal((await api('/api/social/posts',{user:2,body:{mediaIds:[a],rightsConfirmed:true}})).status,403);
+ const c=await api('/api/social/posts',{body:{mediaIds:[a,b],caption:'Jummah with family',rightsConfirmed:true}});assert.equal(c.status,201);assert.equal(c.data.publication.format,'carousel');assert.equal(c.data.publication.media.slides.length,2);
+ const s=await api('/api/social/posts',{body:{mediaIds:[v],kind:'story',caption:'Today',rightsConfirmed:true}});assert.equal(s.status,201);
+ assert((await api('/api/social/stories')).data.stories.some(x=>x.id===s.data.story.id));
+});

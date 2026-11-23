@@ -1,0 +1,185 @@
+// Creator University — an in-depth course on growing and earning on Shukr. Shared by the client (rendering) and server (lesson ids).
+// Each lesson: id, title, mins, summary, body (array of blocks), task (do-it-now action), quiz {q, options, answer, why}.
+// Block types: ['p', text] paragraph · ['h', text] heading · ['list', [..]] bullets · ['steps', [..]] numbered · ['tip', text] · ['do', [good, bad]] example pair.
+(function (root) {
+  const MODULES = [
+  { id: 'm1', title: 'Foundations', emoji: '🌱', color: '#34C759', blurb: 'How Shukr works and what makes a creator worth following.', lessons: [
+    { id: 'how-feed-works', title: 'How the For You feed picks videos', mins: 6, summary: 'What Shukr measures when it decides who sees your post.',
+      body: [
+        ['p', 'Every new post is first shown to a small test group — a few dozen people who watch content like yours. If that group keeps watching, comments, saves or shares, Shukr shows it to a bigger group, then a bigger one. That is why a brand-new account can reach thousands of people with one good video.'],
+        ['h', 'What counts most (in order)'],
+        ['steps', ['Watch time — how much of your video people actually watch. Finishing and re-watching is the strongest signal.', 'Saves and shares — people keep it or send it to a friend. This tells Shukr your post is useful.', 'Comments — especially long ones and replies between viewers.', 'Likes — useful, but the weakest signal.', 'Follows from the post — someone liked it enough to want more.']],
+        ['h', 'What hurts reach'],
+        ['list', ['People scrolling past in the first 2 seconds (views under 2 seconds don’t count).', 'Reports, “not interested” taps and hidden posts.', 'Re-uploading the same clip, or other people’s content.', 'Spammy captions full of hashtags, or asking for likes with nothing in return.']],
+        ['tip', 'You don’t need followers to go viral on Shukr. You need the first 2 seconds to make people stay.']],
+      task: { text: 'Open your last 3 posts and note which one got the most watch time. That is your best format — make another one like it.', go: '/profile' },
+      quiz: { q: 'Which signal matters MOST for reach?', options: ['Number of hashtags', 'Watch time and completion', 'Posting at midnight', 'Likes from friends'], answer: 1, why: 'Shukr tests every post on a small group first; if they watch to the end, it spreads.' } },
+    { id: 'niche', title: 'Pick your niche and your “one promise”', mins: 7, summary: 'Why focused accounts grow 3–5× faster, and how to choose yours.',
+      body: [
+        ['p', 'People follow an account when they know what they will get next. “Islamic stuff” is not a niche. “60-second Seerah stories for busy students” is.'],
+        ['h', 'Niches that do well on Shukr'],
+        ['list', ['Quran: one ayah explained a day, recitation practice, tafsir in simple words.', 'Seerah & history: stories of the Prophet ﷺ, the Sahabah and great Muslims, told like a story.', 'Daily life: halal recipes, Muslim parenting, revert journeys, modest fashion, hijab tutorials.', 'Self-improvement: discipline, Fajr routines, gym and fasting, productivity with prayer times.', 'Nature & reflection: “look at His creation” clips with a calm nasheed or nature sound.', 'Knowledge: Arabic words, Islamic finance, fiqh basics (always cite a scholar or source).', 'Community: mosque tours, charity drives, local halal food reviews.']],
+        ['h', 'Write your one promise'],
+        ['p', 'Fill in: “I help ____ to ____ with ____.” Example: “I help new Muslims learn their first 10 surahs with 30-second daily lessons.” Put it in your bio.'],
+        ['do', ['Bio: “Daily 30-sec Arabic words for beginners 🌙 New word every evening”', 'Bio: “Muslim. Love Allah. Follow me for content”']],
+        ['tip', 'Stay in one niche for your first 30 posts. You can widen later once people know you.']],
+      task: { text: 'Write your one-line promise and put it in your profile bio.', go: '/profile/edit' },
+      quiz: { q: 'Which bio is the strongest?', options: ['“Follow for Islamic content”', '“Daily 30-sec Arabic words for beginners — new word every evening”', '“Just a Muslim sharing”', '“Like and follow pls”'], answer: 1, why: 'It says who it is for, what they get and how often.' } },
+    { id: 'profile-setup', title: 'A profile that turns viewers into followers', mins: 5, summary: 'Your profile is your shop window — fix it before you post.',
+      body: [
+        ['steps', ['Photo: your face (well lit, smiling) or a clean logo. Faces get more follows.', 'Name: the name people will search, e.g. “Aisha | Quran for Kids”.', 'Username: short, easy to spell, no random numbers.', 'Bio: your one promise + how often you post + one emoji.', 'Pin your 3 best posts so new visitors see your best work first.']],
+        ['tip', 'When someone loves a video they tap your name. You have about 3 seconds on your profile to convince them to follow.']],
+      task: { text: 'Update your photo, name and bio now.', go: '/profile/edit' },
+      quiz: { q: 'What should new visitors see first on your profile?', options: ['Your oldest posts', 'Your best posts, pinned', 'Nothing — keep it private', 'A long list of rules'], answer: 1, why: 'Pinned best work turns a curious visitor into a follower.' } },
+    { id: 'adab', title: 'The adab of a Muslim creator', mins: 6, summary: 'Grow without losing your deen — and stay within Shukr’s rules.',
+      body: [
+        ['p', 'Your content can be a sadaqah jariyah — every person who learns something good from you adds to your scale. It can also do the opposite. Intention (niyyah) comes first.'],
+        ['h', 'Golden rules'],
+        ['list', ['Accuracy: quote Quran with the surah and ayah number; quote hadith with the book and number, and say if it is weak. If you are not sure, don’t post it — ask a scholar in Ask a Scholar.', 'No music with instruments — use nasheeds, vocals, nature sounds or your voice. Shukr’s sound library only has these.', 'No backbiting, mocking other Muslims, or “exposing” people for views.', 'Modesty in what you show, for yourself and others. Get permission before filming people.', 'No fake giveaways, clickbait lies, or buying followers.', 'Fatwas: share what scholars say and name them — don’t give rulings yourself.']],
+        ['tip', 'Being trustworthy is also the best growth strategy: people share creators they trust.']],
+      task: { text: 'Write your niyyah for creating in one sentence and keep it in your notes.', go: null },
+      quiz: { q: 'You want to share a hadith but don’t know its grading. What do you do?', options: ['Post it anyway', 'Check the source and grading first (or ask a scholar)', 'Change the words a little', 'Say “I think it’s authentic”'], answer: 1, why: 'Attributing words to the Prophet ﷺ without checking is serious. Verify first.' } }]},
+  { id: 'm2', title: 'Making content people finish', emoji: '🎬', color: '#FF2D55', blurb: 'Hooks, structure, filming and editing with Shukr’s camera.', lessons: [
+    { id: 'hooks', title: 'The first 2 seconds: hooks that stop the scroll', mins: 8, summary: '12 hook formulas that work, with examples.',
+      body: [
+        ['p', 'Most people decide in under 2 seconds. Your first words AND your first picture must create a question the viewer needs answered.'],
+        ['h', 'Hook formulas'],
+        ['steps', ['The surprising fact: “The Kaaba has been rebuilt at least 10 times.”', 'The mistake: “Stop saying this after you sneeze.”', 'The promise: “Memorise Ayat al-Kursi in 7 days with this trick.”', 'The question: “Why did the Prophet ﷺ sleep on his right side?”', 'The challenge: “I prayed every prayer on time for 30 days — here’s what changed.”', 'The list: “3 duas for when you’re anxious.”', 'The story start: “In 1453, a 21-year-old sultan did the impossible…”', 'The POV: “POV: you finally wake up for Fajr without an alarm.”', 'The contrast: “Rich man’s morning vs a Sahabi’s morning.”', 'The secret: “The sunnah most people forget at iftar.”', 'The direct call: “If you’ve missed prayers this week, watch this.”', 'The visual hook: start mid-action — pouring tea, opening the Quran, a sunrise time-lapse.']],
+        ['do', ['“3 duas the Prophet ﷺ made when he was sad” (text on screen + said aloud in the first second)', '“Assalamu alaikum guys, welcome back to my channel, today I want to talk about…”']],
+        ['tip', 'Put the hook as big text on screen too — many people watch with the sound off. Use Text in the editor and place it in the top third.']],
+      task: { text: 'Write 3 hooks for your next video using 3 different formulas above.', go: null },
+      quiz: { q: 'Which opening is best?', options: ['“Hi everyone, welcome back…”', '“Stop making this mistake in sujood.”', 'A 3-second logo intro', 'Silence while you set up the camera'], answer: 1, why: 'It creates a question in the first second — viewers stay to find out.' } },
+    { id: 'structure', title: 'Structure: hook → value → payoff → loop', mins: 7, summary: 'The 4-part shape behind almost every viral video.',
+      body: [
+        ['steps', ['Hook (0–2 s): the question or promise.', 'Value (2–25 s): deliver fast. One idea per sentence. Cut every pause.', 'Payoff (last 3 s): the answer, the result, the emotional moment.', 'Loop: end with a line that flows back into the start, so people watch twice.']],
+        ['h', 'Ideal lengths on Shukr'],
+        ['list', ['Tips, duas, facts: 15–30 seconds.', 'Stories (Seerah, history): 45–90 seconds.', 'Tutorials and recipes: 30–60 seconds.', 'Longer than 90 s only if every second is earning its place.']],
+        ['tip', 'Rewatch your draft. The moment you feel bored, viewers already left — cut there.']],
+      task: { text: 'Plan your next video on paper: write one line each for hook, value, payoff and loop.', go: null },
+      quiz: { q: 'What does a “loop” ending do?', options: ['Makes the video longer', 'Makes people rewatch, which boosts watch time', 'Adds music', 'Nothing'], answer: 1, why: 'A seamless ending makes viewers watch again — a very strong signal.' } },
+    { id: 'filming', title: 'Filming with your phone like a pro', mins: 8, summary: 'Light, sound and framing — and how to use Shukr’s camera tools.',
+      body: [
+        ['h', 'Light'],
+        ['list', ['Face a window. Natural light from the front beats any filter.', 'Avoid a bright window behind you — you become a silhouette.', 'At night, use a lamp at 45° to your face.']],
+        ['h', 'Sound (more important than picture)'],
+        ['list', ['Film in a small room with soft furniture — less echo.', 'Hold the phone closer (arm’s length) or use cheap wired earphones as a mic.', 'In the editor, use Sound → Voiceover to re-record your voice cleanly over the clip.']],
+        ['h', 'Framing'],
+        ['list', ['Vertical (9:16), eyes in the top third. Turn on Grid in the Shukr camera to line up.', 'Leave space at the bottom — captions and the like/comment buttons sit there.', 'Move! Change angle every 3–5 seconds to keep attention.']],
+        ['h', 'Shukr camera tricks'],
+        ['list', ['Hold the shutter to record, tap for a photo.', 'Timer (3 s / 10 s) for hands-free shots.', 'Swipe left/right on the preview to change filter live.', 'Pinch to zoom; Flip for selfie; Flash lights your face with the front camera.']],
+        ['tip', 'A clean wall + window light + clear voice beats an expensive camera every time.']],
+      task: { text: 'Record a 10-second test clip facing a window with Grid on. Compare with a clip filmed with your back to the window.', go: '/create' },
+      quiz: { q: 'Where should your eyes be in a vertical video?', options: ['Bottom third', 'Exact centre', 'Top third', 'Out of frame'], answer: 2, why: 'Top third looks natural and keeps your face clear of captions and buttons.' } },
+    { id: 'editing', title: 'Editing in Shukr: the full toolkit', mins: 10, summary: 'Every editor tool, and when to use it.',
+      body: [
+        ['steps', ['Trim: cut the dead start and end. Start on action, not on you pressing record.', 'Speed: 2× for time-lapses (cooking, travel), 0.5× for dramatic moments.', 'Filters: pick one look and keep it for your whole account — it becomes your style. Lower the strength for a natural look.', 'Adjust: Brightness +10 and Contrast +10 fixes most phone clips. Warmth up for cosy, down for clean.', 'Text: hook in the first second, key words through the video. Tap text to edit, drag to move, pinch to resize.', 'Captions: tap Auto captions — Shukr writes them from your speech. 80% of people watch muted.', 'Sounds: add a nasheed, vocal or nature sound from the library. Keep it under your voice (about 30–40%).', 'Voice effects: Masjid adds reverb, Deep makes narration powerful, Echo for drama.', 'Effects: Slow zoom for emotional endings, Fade for calm clips, Glitch/VHS for energetic edits.', 'Stickers & tags: @mention people you feature, add place and time stickers for travel.', 'Draw: circle or underline something important.', 'Cover: pick a clear, bright frame with text so your profile grid looks great.']],
+        ['tip', 'Fewer, better edits. One filter, one font, one sound — consistency looks professional.']],
+      task: { text: 'Edit one clip using Trim, Text, Auto captions and one sound from the library.', go: '/create' },
+      quiz: { q: 'Why add captions?', options: ['They look busy', 'Most people watch with the sound off', 'They are required', 'They slow the video'], answer: 1, why: 'Muted viewers still get your message, so they keep watching.' } },
+    { id: 'sounds', title: 'Sounds that move hearts (no instruments)', mins: 5, summary: 'How to choose nasheeds, vocals and nature sounds for each mood.',
+      body: [
+        ['list', ['Peaceful / reflection: soft vocal nasheeds, rain, birdsong, waves.', 'Gym / motivation: heartbeat, thunder, throat-singing, powerful vocals.', 'Stories / history: wind, desert night, a slow chant under your narration.', 'Kids: humming, birds, gentle vocals.']],
+        ['p', 'In the editor tap Sound → pick a track → set its volume. Your voice should always be louder than the sound.'],
+        ['tip', 'Use the same signature sound in a series (e.g. rain for every “Night reminder”) — people start to recognise you by ear.']],
+      task: { text: 'Open the sound library and save 3 sounds you’ll use for your series.', go: '/create' },
+      quiz: { q: 'In a talking video, the background sound should be…', options: ['Louder than your voice', 'About the same', 'Quieter than your voice', 'Muted always'], answer: 2, why: 'People came for your words; the sound supports them.' } }]},
+  { id: 'm3', title: 'Growing your audience', emoji: '📈', color: '#007AFF', blurb: 'Consistency, series, stories, community and collaboration.', lessons: [
+    { id: 'consistency', title: 'Consistency: the posting plan', mins: 6, summary: 'How often to post and the weekly plan that works.',
+      body: [
+        ['p', 'Accounts that post at least once a day for 30 days almost always grow faster than accounts that post a perfect video once a week. Each post is another lottery ticket in the For You feed.'],
+        ['h', 'Starter weekly plan'],
+        ['list', ['Every day: 1 video + 2 stories.', '3× a week: 1 photo carousel (lists, quotes, step-by-step).', 'Weekly: 1 “big” post — a story or tutorial you put extra effort into.', 'Friday: a Jumu’ah reminder — Fridays get high engagement.']],
+        ['h', 'Best times'],
+        ['list', ['After Fajr (people check their phones).', 'Lunch break 12–2 pm.', 'After Maghrib / Isha (the busiest time).', 'In Ramadan: before suhoor and just before iftar.']],
+        ['tip', 'Batch-create: film 5 videos on one day, post one a day. Your Creator Quests reward daily posting and streaks.']],
+      task: { text: 'Plan your next 7 posts in a note — one line each.', go: '/creator/quests' },
+      quiz: { q: 'What usually grows a new account faster?', options: ['1 perfect video a month', 'Good videos daily for 30 days', 'Deleting posts that flop', 'Posting 30 videos in one hour then stopping'], answer: 1, why: 'More good posts = more chances to be tested and pushed by the feed.' } },
+    { id: 'series', title: 'Series: the follow machine', mins: 6, summary: 'Why “Part 1, Part 2…” makes people follow.',
+      body: [
+        ['p', 'A series gives people a reason to follow: they want the next part. Number them and use the same cover style and hook format.'],
+        ['list', ['“99 Names in 99 days — Day 14: Al-Wahhab.”', '“Stories of the Prophets — Part 3: Yusuf (AS).”', '“Arabic word of the day #27.”', '“Halal breakfast in 60 seconds — Episode 8.”']],
+        ['tip', 'End each episode with “Follow so you don’t miss Part 4” — said naturally, not begged.']],
+      task: { text: 'Name a series you could make 30 episodes of. Post Episode 1 this week.', go: '/create' },
+      quiz: { q: 'Why do series grow followers?', options: ['They are longer', 'Viewers follow to see the next part', 'They use more hashtags', 'They are cheaper to make'], answer: 1, why: 'Curiosity about the next episode turns viewers into followers.' } },
+    { id: 'stories', title: 'Stories: build the bond', mins: 5, summary: 'Stories keep your followers close between posts.',
+      body: [
+        ['list', ['Post 2–5 stories a day: behind the scenes, your day, polls, a question.', 'Share your new post to your story so followers see it first.', 'Repost kind comments and tag the person — they’ll share it too.', 'Stories disappear after 24 hours, so they can be casual and real.']],
+        ['tip', 'Your Creator Quests include “Add 2 stories today” — an easy daily win.']],
+      task: { text: 'Add 2 stories today: one behind-the-scenes and one question to your followers.', go: '/create?type=story' },
+      quiz: { q: 'Stories are best for…', options: ['Your most polished work only', 'Daily connection and behind the scenes', 'Long lectures', 'Nothing'], answer: 1, why: 'Stories build a personal bond that makes followers loyal.' } } ,
+    { id: 'community', title: 'Comments and community', mins: 6, summary: 'Turning viewers into a loyal community.',
+      body: [
+        ['steps', ['Reply to every comment in the first hour after posting — it boosts the post and makes people come back.', 'Ask a question in your caption that is easy to answer: “Which dua do you say most?”', 'Pin the best comment.', 'Make a video replying to a great question — people love being featured.', 'Remove hate and report abuse; protect your space.']],
+        ['tip', 'Comments under the first hour count double in practice: they push your post into the next test group sooner.']],
+      task: { text: 'Reply to 5 comments today (a daily quest).', go: '/notifications' },
+      quiz: { q: 'When is replying to comments most valuable?', options: ['A month later', 'In the first hour after posting', 'Never', 'Only to famous people'], answer: 1, why: 'Early conversation signals a lively post and helps it spread.' } },
+    { id: 'collab', title: 'Collaborations and tags', mins: 5, summary: 'Borrow audiences the halal way.',
+      body: [
+        ['list', ['Partner with a creator of a similar size in a nearby niche (e.g. a recipe creator + a Ramadan creator).', 'Tag people and places you feature with @mention stickers.', 'Duet-style reaction: repost a good post with your own take (always credit).', 'Run a joint challenge: “30 days of Fajr” with three creators.']],
+        ['tip', 'Never pay for fake followers — Shukr removes fake engagement and it ruins your reach.']],
+      task: { text: 'Message one creator your size with a collab idea.', go: '/messages' },
+      quiz: { q: 'Buying followers will…', options: ['Help you get paid', 'Hurt your reach and may get removed', 'Make you verified', 'Do nothing'], answer: 1, why: 'Fake followers don’t watch, so every post looks weak to the feed.' } },
+    { id: 'analytics', title: 'Reading your numbers', mins: 6, summary: 'Which numbers to watch, and what to do about them.',
+      body: [
+        ['list', ['Low views on every post → your hooks or cover need work (lesson: Hooks).', 'Views OK but people leave fast → cut the intro, speed up the middle.', 'Good watch time but few follows → add a series and a clear promise in your bio.', 'Lots of saves → that topic is gold. Make 5 more like it.', 'Comments high → people want to talk. Reply with videos.']],
+        ['tip', 'Copy yourself: your best post this month is the blueprint for next month.']],
+      task: { text: 'Open your Creator dashboard and find your best post of the week. Write why you think it worked.', go: '/creator/quests' },
+      quiz: { q: 'A post got lots of saves. What should you do?', options: ['Delete it', 'Make more posts on that topic', 'Never post that topic again', 'Ignore it'], answer: 1, why: 'Saves mean people found it truly useful — your audience wants more.' } }]},
+  { id: 'm4', title: 'Earning on Shukr', emoji: '💰', color: '#D4AF37', blurb: 'Every way to earn — and how to unlock each one.', lessons: [
+    { id: 'creator-rewards', title: 'Creator Rewards: ad revenue', mins: 6, summary: 'How to unlock ad earnings on your videos.',
+      body: [
+        ['p', 'Once you join Creator Rewards, you earn from ads shown with your content.'],
+        ['h', 'Requirements'],
+        ['list', ['5,000 followers.', '150,000 qualified views in the last 28 days (views of 2+ seconds from other people).', 'Original content that follows the community rules.']],
+        ['h', 'How to get there faster'],
+        ['list', ['Post daily for 60–90 days (Quests keep you on track).', 'Focus on watch time — longer, finished videos earn more from ads.', 'Make series so viewers come back.']],
+        ['tip', 'Track your progress in Creator dashboard → the Monetised milestone shows exactly how far you are.']],
+      task: { text: 'Check how far you are from 5,000 followers and 150,000 views.', go: '/creator' },
+      quiz: { q: 'What do you need to join Creator Rewards?', options: ['100 followers', '5,000 followers and 150,000 views in 28 days', 'A paid plan', 'A verified badge'], answer: 1, why: 'Both thresholds must be met within the last 28 days.' } },
+    { id: 'more-income', title: 'Tips, gifts, products, services and fundraisers', mins: 8, summary: 'Income you can start before you hit 5,000 followers.',
+      body: [
+        ['list', ['Tips and gifts: fans can send you coins from your posts and profile.', 'Products: sell digital products (e-books, Quran planners, recipe packs) or physical goods in the Marketplace.', 'Freelance: offer services — Quran tutoring, Arabic lessons, video editing, design — in Freelance.', 'Jobs: post or find work in Jobs.', 'Communities: run a paid community for your most loyal followers (e.g. a Hifz circle).', 'Fundraisers: raise money for a verified cause (masjid, orphans, emergency).', 'Referrals: invite friends and earn when they subscribe.', 'Advertise: brands may pay you to make content; you can also boost your own posts.']],
+        ['tip', 'The best first product is the thing people keep asking you about in comments.']],
+      task: { text: 'Open Earn and set up one income stream you can start this week.', go: '/earn' },
+      quiz: { q: 'Can you earn before reaching 5,000 followers?', options: ['No, never', 'Yes — tips, products, freelance, communities, referrals', 'Only by buying ads', 'Only if verified'], answer: 1, why: 'Creator Rewards needs the threshold, but the other income streams don’t.' } },
+    { id: 'halal-money', title: 'Halal earning and brand deals', mins: 6, summary: 'Stay halal, honest and professional with money.',
+      body: [
+        ['list', ['Only promote halal products — no interest-based loans, gambling, alcohol, music apps with instruments, or immodest brands.', 'Always say when a post is sponsored (“Paid partnership with…”). Honesty builds trust and is required.', 'Price your work: a simple start is (your average views ÷ 1,000) × a fair rate for your niche, and raise it as you grow.', 'Pay zakat on savings that reach the nisab for a full lunar year — use the Zakat calculator.', 'Keep records of income for your local tax rules.']],
+        ['tip', 'Barakah comes with honesty: one trustworthy recommendation is worth more than ten paid ones.']],
+      task: { text: 'Write the list of brands you would and wouldn’t work with.', go: '/zakat' },
+      quiz: { q: 'A sponsored post should…', options: ['Hide the sponsorship', 'Clearly say it is a paid partnership', 'Use fake reviews', 'Promote anything that pays'], answer: 1, why: 'Disclosure is honest, required and protects your audience’s trust.' } }]},
+  { id: 'm5', title: 'Pro playbook', emoji: '🚀', color: '#AF52DE', blurb: 'Seasons, trends, burnout and your 30-day launch plan.', lessons: [
+    { id: 'seasons', title: 'Islamic calendar: your content seasons', mins: 5, summary: 'Ride the moments when the whole Ummah is searching.',
+      body: [
+        ['list', ['Ramadan: the biggest season — plan 30 days of content before it starts (suhoor recipes, daily juz summaries, dua lists).', 'Last 10 nights: Laylat al-Qadr reminders and dua videos.', 'Eid al-Fitr & Eid al-Adha: outfits, takbir, family moments, Qurbani explainers.', 'Dhul Hijjah first 10 days: Hajj explainers, best deeds of the year.', 'Muharram & Ashura, Mawlid season (present respectfully and with sources), Isra’ wal Mi‘raj.', 'Every Friday: Jumu’ah sunnahs, Surah al-Kahf reminders.']],
+        ['tip', 'Post seasonal content 3–7 days before the date — that is when people search for it.']],
+      task: { text: 'Check the Calendar and plan content for the next Islamic event.', go: '/calendar' },
+      quiz: { q: 'When should Ramadan content be planned?', options: ['On Eid', 'Before Ramadan starts', 'Never', 'After Ramadan'], answer: 1, why: 'Ready-made content lets you post daily during the busiest season.' } },
+    { id: 'trends', title: 'Using trends without losing yourself', mins: 5, summary: 'Join trends in a way that fits your values.',
+      body: [
+        ['list', ['Watch the For You feed 15 minutes a day — note formats that keep repeating.', 'Take the format, not the content: a trending “day in my life” becomes “a day in my Ramadan”.', 'Skip trends that need instruments, immodesty or mocking others.', 'Be early: trends peak within days.']],
+        ['tip', 'Your angle is your advantage: a familiar format with a Muslim twist stands out.']],
+      task: { text: 'Spend 15 minutes on For You and write down 2 formats you could adapt.', go: '/fyp' },
+      quiz: { q: 'The smart way to use a trend is to…', options: ['Copy it exactly', 'Adapt the format with your own halal angle', 'Ignore all trends forever', 'Use its music'], answer: 1, why: 'The format brings reach; your angle makes it yours.' } },
+    { id: 'burnout', title: 'Avoiding burnout and keeping sincere', mins: 5, summary: 'Create for years, not weeks.',
+      body: [
+        ['list', ['Batch your work: film twice a week, post daily.', 'Set a creating time that never clashes with salah.', 'Take a weekly day off from checking numbers.', 'Renew your intention: numbers go up and down, your reward with Allah is what lasts.', 'Don’t compare your Chapter 1 to someone else’s Chapter 20.']],
+        ['tip', 'Streak freeze: if you miss a day, post a story the next morning to restart — never quit after one bad week.']],
+      task: { text: 'Pick your two weekly filming days and put them in your calendar.', go: '/calendar' },
+      quiz: { q: 'The best protection against burnout is…', options: ['Posting 20 times a day', 'Batching, rest and renewing your intention', 'Checking stats every hour', 'Quitting'], answer: 1, why: 'Sustainable habits and sincere intention keep you going for years.' } },
+    { id: 'launch30', title: 'Your 30-day launch plan', mins: 7, summary: 'Day-by-day plan to go from zero to a real audience.',
+      body: [
+        ['h', 'Week 1 — Set up and start'],
+        ['list', ['Day 1: fix your profile, write your one promise.', 'Day 2–7: post 1 video a day using a different hook formula each day. 2 stories daily.']],
+        ['h', 'Week 2 — Find what works'],
+        ['list', ['Keep posting daily. Start your series (Episode 1–7).', 'Reply to every comment in the first hour.']],
+        ['h', 'Week 3 — Double down'],
+        ['list', ['Make 3 more posts like your best performer.', 'Post 2 carousels. Do one collab.']],
+        ['h', 'Week 4 — Build the machine'],
+        ['list', ['Batch-film the next 2 weeks.', 'Set up one income stream (tips, a product or a service).', 'Review your numbers and plan month 2.']],
+        ['tip', 'Finish all Creator Quests for 30 days in a row and you unlock the “Unstoppable” badge.']],
+      task: { text: 'Start Day 1 today — open your Creator dashboard and claim your first quest.', go: '/creator/quests' },
+      quiz: { q: 'What should you do in Week 3?', options: ['Stop posting', 'Make more posts like your best performer', 'Change niche', 'Delete everything'], answer: 1, why: 'Doubling down on what works is how accounts break out.' } }]}];
+  const api = { MODULES, lesson: id => { for (const m of MODULES) for (const l of m.lessons) if (l.id === id) return { ...l, module: m }; return null; } };
+  root.ShukrCourse = api; if (typeof module === 'object' && module && module.exports) module.exports = api;
+})(globalThis);

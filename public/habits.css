@@ -1,0 +1,44 @@
+/* Habits: scoped to the standalone view; inherits Shukr light/dark tokens. */
+.habits-view { max-width: 760px; margin: 0 auto; }
+.habits-view h2 { font-family: var(--serif, Georgia, serif); font-size: clamp(25px, 6vw, 34px); margin: 8px 0; }
+.habit-intro { margin: 8px 0 22px; }
+.habit-intro p { line-height: 1.6; margin: 8px 0; }
+.habit-progress strong { font-size: 24px; color: var(--accent); }
+.habit-progress progress { display: block; width: 100%; height: 9px; margin-top: 14px; border: 0; border-radius: 9px; overflow: hidden; accent-color: var(--accent); background: var(--border, #ccc); }
+.habit-progress progress::-webkit-progress-bar { background: var(--border, #ccc); }
+.habit-progress progress::-webkit-progress-value { background: var(--accent); border-radius: 9px; }
+.habit-progress progress::-moz-progress-bar { background: var(--accent); }
+.habit-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin: 18px 0; }
+.habit-days button { min-width: 0; min-height: 74px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 1px solid var(--border, #ccc); border-radius: 14px; padding: 8px 1px; background: var(--card, var(--bg)); color: inherit; cursor: pointer; font: inherit; }
+.habit-days button span { font-size: 11px; }
+.habit-days button strong { font-size: 18px; }
+.habit-days button small { font-size: 9px; }
+.habit-days button[aria-pressed="true"] { background: var(--accent); color: var(--bg, #fff); border-color: var(--accent); }
+.habit-row { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 44px; gap: 10px; padding: 18px 0; border-top: 1px solid var(--border, #ccc); }
+.habit-check { min-height: 44px; display: flex; align-items: center; gap: 11px; cursor: pointer; min-width: 0; }
+.habit-check input { width: 22px; height: 22px; margin: 0; flex: 0 0 22px; accent-color: var(--accent); cursor: pointer; }
+.habit-icon { display: inline-grid; place-items: center; flex: 0 0 28px; color: var(--accent); }
+.habits-view svg { width: 20px; height: 20px; flex-shrink: 0; }
+.habit-copy { display: flex; flex-direction: column; gap: 5px; min-width: 0; overflow-wrap: anywhere; }
+.habit-copy strong { font-weight: 600; }
+.habit-copy .small { line-height: 1.5; }
+.habit-row.is-complete .habit-copy strong { color: var(--accent); }
+.habit-menu { align-self: start; position: relative; }
+.habit-menu > summary { list-style: none; cursor: pointer; min-height: 44px; display: grid; place-items: center; border-radius: 10px; }
+.habit-menu > summary::-webkit-details-marker { display: none; }
+.habit-menu-panel { position: absolute; right: 0; top: 44px; z-index: 5; padding: 6px; border: 1px solid var(--border, #ccc); border-radius: 12px; background: var(--bg, #fff); box-shadow: 0 8px 24px #0002; }
+.habit-menu-panel button { min-height: 44px; padding: 8px 18px; border: 0; border-radius: 8px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.habit-history { display: flex; gap: 5px; grid-column: 1; padding-left: 33px; }
+.habit-history > span { display: inline-block; width: 18px; height: 7px; border-radius: 4px; background: var(--border, #ccc); }
+.habit-history > span.done { background: var(--accent); }
+.habit-add { display: flex; flex-direction: column; gap: 9px; }
+.habit-add label { font-size: 13px; }
+.habit-add .input { width: 100%; min-height: 44px; box-sizing: border-box; }
+.habit-add button { margin-top: 5px; justify-content: center; }
+.habit-suggestions { display: flex; flex-wrap: wrap; gap: 8px; }
+.habit-suggestions .btn { min-height: 44px; font-size: 13px; gap: 7px; }
+.habit-archived > summary { cursor: pointer; min-height: 44px; line-height: 44px; }
+.habits-view button:disabled, .habits-view input:disabled { opacity: .55; cursor: default; }
+.habits-view :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.habit-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+@media (max-width: 360px) { .habit-check { gap: 7px; } .habit-icon { display: none; } .habit-days { gap: 2px; } }

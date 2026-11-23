@@ -1,0 +1,58 @@
+[
+ {
+  "slug": "shukrdaily-morning",
+  "account": "shukrdaily",
+  "caption": "Start your day with shukr 🌅 Comment “Alhamdulillah” if you’re grateful today",
+  "topic": "wellbeing",
+  "duration": 12.2
+ },
+ {
+  "slug": "shukrreminders-sabr",
+  "account": "shukrreminders",
+  "caption": "For whoever needs this today 🤍 Qur’an 94:6",
+  "topic": "quran",
+  "duration": 10.6
+ },
+ {
+  "slug": "shukrreminders-dua",
+  "account": "shukrreminders",
+  "caption": "Make du‘a right now. He’s listening 🤲 Qur’an 40:60",
+  "topic": "quran",
+  "duration": 12.1
+ },
+ {
+  "slug": "shukrfacts-water",
+  "account": "shukrfacts",
+  "caption": "SubhanAllah 💧 Qur’an 21:30",
+  "topic": "world",
+  "duration": 13.0
+ },
+ {
+  "slug": "shukrfacts-honey",
+  "account": "shukrfacts",
+  "caption": "The miracle in your spoon 🍯 Qur’an 16:69",
+  "topic": "world",
+  "duration": 11.0
+ },
+ {
+  "slug": "shukrnature-forest",
+  "account": "shukrnature",
+  "caption": "Nature with a nasheed 🌿 “Everything in the heavens and earth glorifies Allah” (57:1)",
+  "topic": "world",
+  "duration": 14.0
+ },
+ {
+  "slug": "shukrnature-night",
+  "account": "shukrnature",
+  "caption": "Night sky nasheed ✨ Qur’an 3:190",
+  "topic": "world",
+  "duration": 14.0
+ },
+ {
+  "slug": "shukrnature-aurora",
+  "account": "shukrnature",
+  "caption": "MashaAllah 🌌 nasheed: SubhanAllah",
+  "topic": "world",
+  "duration": 14.0
+ }
+]

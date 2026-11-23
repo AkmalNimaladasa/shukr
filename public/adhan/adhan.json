@@ -1,0 +1,223 @@
+[
+ {
+  "id": "madinah",
+  "label": "Madinah",
+  "sub": "Recorded at Masjid an-Nabawi",
+  "author": "ejaz215",
+  "license": "CC BY 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:33937_ejaz215_call-to-prayer-from-the-prophet-s-mo.ogg",
+  "secs": 186,
+  "url": "/adhan/madinah.mp3",
+  "short": "/adhan/madinah-short.mp3"
+ },
+ {
+  "id": "gentle",
+  "label": "Gentle",
+  "sub": "Soft, slow adhan",
+  "author": "Adam-synagda",
+  "license": "CC0",
+  "source": "https://commons.wikimedia.org/wiki/File:Beautiful_adhan.ogg",
+  "secs": 154,
+  "url": "/adhan/gentle.mp3",
+  "short": "/adhan/gentle-short.mp3"
+ },
+ {
+  "id": "classic",
+  "label": "Classic",
+  "sub": "Traditional long adhan",
+  "author": "Andrewler",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Azan.ogg",
+  "secs": 183,
+  "url": "/adhan/classic.mp3",
+  "short": "/adhan/classic-short.mp3"
+ },
+ {
+  "id": "aaqib",
+  "label": "Aaqib Azeez",
+  "sub": "Clear studio adhan",
+  "author": "Atcovi (Aaqib Azeez)",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:The_Adhan_-_Muslim_Call_to_Prayer_-_Aaqib_Azeez.mp3",
+  "secs": 86,
+  "url": "/adhan/aaqib.mp3",
+  "short": "/adhan/aaqib-short.mp3"
+ },
+ {
+  "id": "westafrica",
+  "label": "West Africa",
+  "sub": "Short adhan from Nigeria",
+  "author": "Aishatu98",
+  "license": "CC0",
+  "source": "https://commons.wikimedia.org/wiki/File:Adhan.ogg",
+  "secs": 39,
+  "url": "/adhan/westafrica.mp3",
+  "short": "/adhan/westafrica-short.mp3"
+ },
+ {
+  "id": "atlas",
+  "label": "Atlas Mountains",
+  "sub": "Village mosque, Morocco",
+  "author": "iainmccurdy",
+  "license": "CC BY 4.0",
+  "source": "https://freesound.org/people/iainmccurdy/sounds/807484/",
+  "secs": 74,
+  "url": "/adhan/atlas.mp3",
+  "short": "/adhan/atlas-short.mp3"
+ },
+ {
+  "id": "mahur",
+  "label": "Maqam Mahur",
+  "sub": "Shia adhan (Iran)",
+  "author": "Saeed Hatamzadeh-Varmazyar",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:AzaanMaahur.ogg",
+  "shia": true,
+  "secs": 164,
+  "url": "/adhan/mahur.mp3",
+  "short": "/adhan/mahur-short.mp3"
+ },
+ {
+  "id": "shalkar",
+  "label": "Kazakhstan",
+  "sub": "Matey Qoqanuly mosque, Shalkar",
+  "author": "Esetok (Wikimedia Commons)",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Adhan_in_Shalqar_mosque.webm",
+  "secs": 122,
+  "url": "/adhan/shalkar.mp3",
+  "short": "/adhan/shalkar-short.mp3"
+ },
+ {
+  "id": "clear-solo",
+  "label": "Clear solo",
+  "sub": "Close-mic solo adhan (Wiki Loves Africa)",
+  "author": "Isaacayodele32 (Wikimedia Commons)",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Call_to_prayer.ogg",
+  "secs": 65,
+  "url": "/adhan/clear-solo.mp3",
+  "short": "/adhan/clear-solo-short.mp3"
+ },
+ {
+  "id": "london",
+  "label": "London",
+  "sub": "Marylebone mosque, close-mic",
+  "author": "Emanuele_Correani (Freesound)",
+  "license": "CC0",
+  "source": "https://freesound.org/people/Emanuele_Correani/sounds/459704/",
+  "secs": 118,
+  "url": "/adhan/london.mp3",
+  "short": "/adhan/london-short.mp3"
+ },
+ {
+  "id": "beirut",
+  "label": "Beirut",
+  "sub": "Sabra neighbourhood, Lebanon",
+  "author": "The_Sound_Side (Freesound)",
+  "license": "CC BY 4.0",
+  "source": "https://freesound.org/people/The_Sound_Side/sounds/262229/",
+  "secs": 147,
+  "url": "/adhan/beirut.mp3",
+  "short": "/adhan/beirut-short.mp3"
+ },
+ {
+  "id": "forest",
+  "label": "Forest",
+  "sub": "Adhan called in a forest, Kaga, Japan",
+  "author": "bagustris (Freesound)",
+  "license": "CC0",
+  "source": "https://freesound.org/people/bagustris/sounds/508441/",
+  "secs": 226,
+  "url": "/adhan/forest.mp3",
+  "short": "/adhan/forest-short.mp3"
+ },
+ {
+  "id": "abudhabi",
+  "label": "Abu Dhabi",
+  "sub": "Noon adhan among high-rises",
+  "author": "nikitralala (Freesound)",
+  "license": "CC0",
+  "source": "https://freesound.org/people/nikitralala/sounds/331438/",
+  "secs": 195,
+  "url": "/adhan/abudhabi.mp3",
+  "short": "/adhan/abudhabi-short.mp3"
+ },
+ {
+  "id": "abudhabi-dusk",
+  "label": "Abu Dhabi dusk",
+  "sub": "Evening adhan with city echoes",
+  "author": "nikitralala (Freesound)",
+  "license": "CC0",
+  "source": "https://freesound.org/people/nikitralala/sounds/331518/",
+  "secs": 185,
+  "url": "/adhan/abudhabi-dusk.mp3",
+  "short": "/adhan/abudhabi-dusk-short.mp3"
+ },
+ {
+  "id": "azemour",
+  "label": "Morocco",
+  "sub": "Afternoon adhan, Azemour",
+  "author": "Gvido (Freesound)",
+  "license": "CC BY 3.0",
+  "source": "https://freesound.org/people/Gvido/sounds/36997/",
+  "secs": 155,
+  "url": "/adhan/azemour.mp3",
+  "short": "/adhan/azemour-short.mp3"
+ },
+ {
+  "id": "fajr-ramadan",
+  "label": "Fajr",
+  "sub": "Fajr adhan with \"as-salatu khayrun min an-nawm\" (Ramadan)",
+  "author": "daSupremo (Wikimedia Commons)",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Athan_during_Ramadan_2.wav",
+  "secs": 83,
+  "url": "/adhan/fajr-ramadan.mp3",
+  "short": "/adhan/fajr-ramadan-short.mp3"
+ },
+ {
+  "id": "mali",
+  "label": "Mali",
+  "sub": "Unamplified muezzin, Diafarabé village",
+  "author": "felix.blume (Freesound)",
+  "license": "CC0",
+  "source": "https://freesound.org/people/felix.blume/sounds/133832/",
+  "secs": 66,
+  "url": "/adhan/mali.mp3",
+  "short": "/adhan/mali-short.mp3"
+ },
+ {
+  "id": "mirleft",
+  "label": "Mirleft",
+  "sub": "Loudspeaker adhan, southern Morocco",
+  "author": "kudung (Freesound)",
+  "license": "CC BY 4.0",
+  "source": "https://freesound.org/people/kudung/sounds/195343/",
+  "secs": 116,
+  "url": "/adhan/mirleft.mp3",
+  "short": "/adhan/mirleft-short.mp3"
+ },
+ {
+  "id": "al-ain",
+  "label": "Al Ain",
+  "sub": "Muezzin with birdsong, UAE",
+  "author": "Agim (Freesound)",
+  "license": "CC0",
+  "source": "https://freesound.org/people/Agim/sounds/417865/",
+  "secs": 175,
+  "url": "/adhan/al-ain.mp3",
+  "short": "/adhan/al-ain-short.mp3"
+ },
+ {
+  "id": "hamtramck",
+  "label": "Hamtramck",
+  "sub": "Dhuhr adhan, Michigan, USA",
+  "author": "RJStefanski (Freesound)",
+  "license": "CC BY 3.0",
+  "source": "https://freesound.org/people/RJStefanski/sounds/255231/",
+  "secs": 138,
+  "url": "/adhan/hamtramck.mp3",
+  "short": "/adhan/hamtramck-short.mp3"
+ }
+]

@@ -1,0 +1,124 @@
+[
+ {
+  "id": "ghusl",
+  "icon": "leaf",
+  "title": "Take a bath (ghusl)",
+  "when": "Before leaving for Jumu‘ah",
+  "text": "Bathing on Friday is strongly emphasised for every adult attending Jumu‘ah.",
+  "ref": "Sahih al-Bukhari 877, 879; Sahih Muslim 846"
+ },
+ {
+  "id": "miswak",
+  "icon": "sparkle",
+  "title": "Use the miswak / brush your teeth",
+  "when": "Morning",
+  "text": "The Prophet ﷺ encouraged ghusl, using the miswak and wearing perfume on Friday.",
+  "ref": "Sahih al-Bukhari 880; Sahih Muslim 846"
+ },
+ {
+  "id": "perfume",
+  "icon": "gem",
+  "title": "Wear perfume (men)",
+  "when": "Before leaving",
+  "text": "Apply some fragrance if you have it.",
+  "ref": "Sahih al-Bukhari 880, 883"
+ },
+ {
+  "id": "clothes",
+  "icon": "star",
+  "title": "Wear your best clean clothes",
+  "when": "Before leaving",
+  "text": "Wear the best clothes you have for Jumu‘ah.",
+  "ref": "Sunan Abi Dawud 343 (hasan); Sunan Ibn Majah 1096"
+ },
+ {
+  "id": "early",
+  "icon": "clock",
+  "title": "Go to the masjid early",
+  "when": "Well before the khutbah",
+  "text": "Whoever comes earliest earns a reward like offering a camel, then a cow, a ram, a hen and an egg — and the angels close their records when the imam comes out.",
+  "ref": "Sahih al-Bukhari 881; Sahih Muslim 850"
+ },
+ {
+  "id": "walk",
+  "icon": "route",
+  "title": "Walk if you can",
+  "when": "On the way",
+  "text": "Whoever bathes, goes early, walks rather than rides, sits close to the imam, listens and does not speak idly earns the reward of a year of fasting and night prayer for every step.",
+  "ref": "Sunan Abi Dawud 345; Sunan an-Nasa’i 1381; Jami‘ at-Tirmidhi 496 (sahih)"
+ },
+ {
+  "id": "tahiyyah",
+  "icon": "mosque",
+  "title": "Pray two rak‘ahs on arrival",
+  "when": "On entering, even during the khutbah",
+  "text": "Do not sit until you have prayed two short rak‘ahs — even if the imam is already giving the khutbah.",
+  "ref": "Sahih al-Bukhari 930; Sahih Muslim 875"
+ },
+ {
+  "id": "close",
+  "icon": "users",
+  "title": "Sit close to the imam",
+  "when": "During the khutbah",
+  "text": "Sit near the front and don’t step over people’s shoulders to get there.",
+  "ref": "Sunan Abi Dawud 1108, 1118 (hasan/sahih)"
+ },
+ {
+  "id": "listen",
+  "icon": "mute",
+  "title": "Listen silently to the khutbah",
+  "when": "During the khutbah",
+  "text": "Even saying “be quiet” to someone during the khutbah is idle talk. Don’t use your phone.",
+  "ref": "Sahih al-Bukhari 934; Sahih Muslim 851"
+ },
+ {
+  "id": "kahf",
+  "icon": "quran",
+  "title": "Read Surah al-Kahf",
+  "when": "Any time on Friday (from Maghrib on Thursday)",
+  "text": "Whoever reads Surah al-Kahf on Friday will have a light between the two Fridays.",
+  "ref": "al-Hakim, al-Mustadrak 3392; al-Bayhaqi (sahih per al-Albani, Sahih al-Jami‘ 6470)",
+  "action": "/quran/18"
+ },
+ {
+  "id": "salawat",
+  "icon": "heart",
+  "title": "Send abundant salawat on the Prophet ﷺ",
+  "when": "All day",
+  "text": "Increase your blessings on the Prophet ﷺ on Friday, for they are presented to him.",
+  "ref": "Sunan Abi Dawud 1047; Sunan Ibn Majah 1085 (sahih)",
+  "action": "/dhikr"
+ },
+ {
+  "id": "dua",
+  "icon": "hands",
+  "title": "Make dua in the hour of acceptance",
+  "when": "Especially the last hour before Maghrib",
+  "text": "There is an hour on Friday in which no Muslim asks Allah for good except that He gives it. Many scholars held it to be the last hour after ‘Asr.",
+  "ref": "Sahih al-Bukhari 935; Sahih Muslim 852; Sunan Abi Dawud 1048"
+ },
+ {
+  "id": "sunnah-after",
+  "icon": "mosque",
+  "title": "Pray the sunnah after Jumu‘ah",
+  "when": "After the salah",
+  "text": "Pray four rak‘ahs after Jumu‘ah in the masjid, or two at home.",
+  "ref": "Sahih Muslim 881, 882"
+ },
+ {
+  "id": "fajr",
+  "icon": "sun",
+  "title": "Fajr in congregation",
+  "when": "Friday Fajr",
+  "text": "The Prophet ﷺ used to recite Surah as-Sajdah and Surah al-Insan in Fajr on Friday.",
+  "ref": "Sahih al-Bukhari 891; Sahih Muslim 879"
+ },
+ {
+  "id": "no-fast-alone",
+  "icon": "info",
+  "title": "Don’t single out Friday for fasting",
+  "when": "Good to know",
+  "text": "Don’t fast Friday alone — fast a day before or after it too.",
+  "ref": "Sahih al-Bukhari 1985; Sahih Muslim 1144"
+ }
+]

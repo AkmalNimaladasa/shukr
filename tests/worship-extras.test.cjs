@@ -1,0 +1,7 @@
+const {test}=require('node:test'); const assert=require('node:assert/strict'); const fs=require('node:fs');
+const file=require('node:path').join(__dirname,'../lib/worship-extras.js');
+function helpers(){return fs.existsSync(file)?require(file):{};}
+const vm=require('node:vm');
+function view(name, context={}) {const code=fs.readFileSync(require('node:path').join(__dirname,'../public/js/'+name+'.js'),'utf8').replace(/^import [\s\S]*?from ['"][^'"]+['"];\n/gm,'').replace(/export /g,'');vm.runInNewContext(code,context);return context;}
+test('optional prayer card is independent, opt-in, with qualitative windows and done only',()=>{const c=view('views-worship',{esc:x=>x});assert.equal(typeof c.optionalPrayerCard,'function');const html=c.optionalPrayerCard({tahajjud:true,duha:true,witr:true},{witr:'done'},true);assert.match(html,/Optional prayers/);assert.match(html,/last third/i);assert.match(html,/after sunrise/i);assert.match(html,/after Isha/i);assert.match(html,/data-optional-log="witr"/);assert.doesNotMatch(html,/data-s="missed"/);assert.doesNotMatch(c.optionalPrayerCard({}, {}, true),/data-optional-log/);});
+test('optional prayer settings default off and accept only boolean known keys',()=>{const h=helpers();assert.equal(typeof h.optionalPrayerSettings,'function'); assert.deepEqual(h.optionalPrayerSettings({tahajjud:true,duha:'yes',witr:false,fajr:true}),{tahajjud:true,duha:false,witr:false});});
