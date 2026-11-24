@@ -187,6 +187,7 @@ export async function viewDhikr() {
   const day = localDay();
   const counts = LS.get('dhikrCounts', {}); if (counts._day !== day) { for (const k of Object.keys(counts)) delete counts[k]; counts._day = day; LS.set('dhikrCounts', counts); }
   const custom = LS.get('customDhikr', []); const list = () => [...DHIKR, ...custom];
+  { const want = new URLSearchParams((location.hash.split('?')[1]) || '').get('phrase'); const wi = want ? list().findIndex(d => d.k === want) : -1; if (wi >= 0) LS.set('dhikrIdx', wi); }
   let idx = Math.min(LS.get('dhikrIdx', 0), list().length - 1), fatimah = LS.get('fatimah', false);
   const goal = state.user.settings.dhikrGoal || 100;
   let pending = {}, flushT = null;
