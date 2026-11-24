@@ -1,5 +1,5 @@
 // Worship+ : Istighfar counter, Sunnah tracker (daily/weekly/monthly), How to pray guide, Halal food near me.
-import { $, $$, esc, escAttr, I, api, state, toast, vibrate, shell, bindGo, loadJSON, askAlim, ring, confirmSheet, loadingHTML, LS } from '../core.js';
+import { $, $$, esc, escAttr, I, api, state, toast, vibrate, shell, bindGo, loadJSON, askAlim, ring, confirmSheet, loadingHTML, LS, onCleanup } from '../core.js';
 
 const quran = () => Promise.all([loadJSON('/data/quran-ar.json'), loadJSON('/data/quran-en-pickthall.json')]);
 const day = d => new Date(d + 'T12:00:00').toLocaleDateString([], { weekday: 'short', day: 'numeric' });
@@ -21,7 +21,7 @@ export async function viewIstighfar() {
       <div class="wp-hero-top"><span class="wp-pill">${I.flame} <b id="wStreak">0</b> day streak</span><span class="wp-pill">${I.star} Best <b id="wBest">0</b></span></div>
       <button class="wp-tap" id="wTap" aria-label="Count one istighfar">
         <svg viewBox="0 0 220 220" class="wp-tap-ring"><circle cx="110" cy="110" r="98" class="wp-tr-bg"/><circle cx="110" cy="110" r="98" class="wp-tr-fg" id="wArc" stroke-dasharray="616" stroke-dashoffset="616"/></svg>
-        <span class="wp-tap-in"><b id="wCount">0</b><small>of <span id="wTarget">100</span></small></span>
+        <span class="wp-tap-in"><b id="wCount">0</b><small>of <span id="wTarget">100</span></small><em>Tap anywhere in this box</em></span>
       </button>
       <div class="wp-life"><span>Lifetime istighfar</span><b id="wLife">0</b><div class="wp-lbar"><i id="wLbar"></i></div><small id="wLnext"></small></div>
       <div class="ar wp-phrase" lang="ar" id="wAr"></div><div class="wp-phrase-tr" id="wTr"></div>
@@ -148,43 +148,82 @@ export async function viewSalahGuide() {
 }
 
 // ================= HALAL FOOD NEAR ME =================
+// Uses the live GPS position when the user taps "Use my current location" (kept for this session), otherwise the
+// saved prayer location. Every async write checks `alive` so a late response can't overwrite another page.
+const HALAL_GPS = 'shukr.halalHere';
+function gpsHere() { try { const h = JSON.parse(sessionStorage.getItem(HALAL_GPS) || 'null'); return h && Date.now() - h.t < 30 * 60000 ? h : null; } catch { return null; } }
+function currentPosition() {
+  return new Promise((res, rej) => {
+    if (!navigator.geolocation) return rej(new Error('Location isn’t available on this device — set your city in Settings'));
+    const ok = pos => res({ lat: +pos.coords.latitude.toFixed(5), lng: +pos.coords.longitude.toFixed(5), acc: Math.round(pos.coords.accuracy || 0), t: Date.now() });
+    const fail = e => rej(new Error(e && e.code === 1 ? 'Location permission is off — allow it in your browser settings, then try again' : 'Couldn’t get your location — check GPS is on and try again'));
+    // fast fix first (network/wifi), fall back to a high-accuracy GPS fix
+    navigator.geolocation.getCurrentPosition(ok, e => e && e.code === 1 ? fail(e) : navigator.geolocation.getCurrentPosition(ok, fail, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }), { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 });
+  });
+}
 export async function viewHalalPlaces() {
   const p = shell('Halal food near me');
-  let km = LS.get('halalKm', 3), kind = 'all', r = null, tries = 0;
-  const skel = () => `<div class="wp-hero wp-halal"><div class="wp-hero-k">Within ${km} km</div><div class="wp-hero-big">Finding halal places…</div></div>${Array.from({ length: 4 }, () => '<div class="card wp-place wp-skel"><i></i><i></i><i></i></div>').join('')}`;
+  let km = [1, 3, 5, 10].includes(LS.get('halalKm', 3)) ? LS.get('halalKm', 3) : 3, kind = 'all', r = null, tries = 0, alive = true, seq = 0, poll = null, here = gpsHere();
+  onCleanup(() => { alive = false; clearTimeout(poll); });
+  const where = () => here ? `Near your current location${here.acc > 1000 ? ' (approximate)' : ''}` : state.user?.settings?.city ? `Near ${state.user.settings.city}` : 'Near your saved location';
+  const locBtn = (busy) => `<button class="btn ghost sm wp-locbtn" id="hHere" ${busy ? 'disabled' : ''}>${I.compass} ${busy ? 'Locating…' : here ? 'Update my location' : 'Use my current location'}</button>`;
+  const head = (big, busy) => `<div class="wp-hero wp-halal"><div class="wp-hero-k">${esc(where())} · within ${km} km</div><div class="wp-hero-big">${big}</div></div>
+    <div class="row wp-locrow">${locBtn(busy)}${here ? `<button class="btn ghost sm" id="hSaved">Use saved location</button>` : ''}</div>`;
+  const skel = (busy) => head('Finding halal places…', busy) + Array.from({ length: 4 }, () => '<div class="card wp-place wp-skel"><i></i><i></i><i></i></div>').join('');
+  function bindLoc() {
+    const b = $('#hHere', p); if (b) b.onclick = useHere;
+    const s = $('#hSaved', p); if (s) s.onclick = () => { here = null; sessionStorage.removeItem(HALAL_GPS); r = null; tries = 0; load(); };
+  }
+  async function useHere() {
+    const b = $('#hHere', p); if (b) { b.disabled = true; b.innerHTML = `${I.compass} Locating…`; }
+    try { here = await currentPosition(); if (!alive) return; sessionStorage.setItem(HALAL_GPS, JSON.stringify(here)); r = null; tries = 0; vibrate(10); load(); }
+    catch (e) { if (!alive) return; toast(e.message, 4000); if (b) { b.disabled = false; b.innerHTML = `${I.compass} ${here ? 'Update my location' : 'Use my current location'}`; } }
+  }
   async function load() {
-    if (!r) p.innerHTML = skel();
-    try { r = await api(`/worship-plus/halal?km=${km}`); }
+    clearTimeout(poll); const my = ++seq;
+    if (!r) { p.innerHTML = skel(); bindLoc(); }
+    let res;
+    try { res = await api(`/worship-plus/halal?km=${km}` + (here ? `&lat=${here.lat}&lng=${here.lng}` : '')); }
     catch (e) {
-      if (/location/i.test(e.message)) {
-        p.innerHTML = `<div class="empty"><div class="e">${I.pin}</div><h3>Where are you?</h3><p class="muted">Set your location to find halal food near you.</p><button class="btn accent" id="hLoc">Use my location</button></div>`;
-        $('#hLoc').onclick = async () => { try { await (await import('../views-worship.js')).locate(); load(); } catch (er) { toast(er.message); } }; return;
+      if (!alive || my !== seq) return;
+      if (e.data?.needLocation || /location/i.test(e.message)) {
+        p.innerHTML = `<div class="empty"><div class="e">${I.pin}</div><h3>Where are you?</h3><p class="muted">Share your location to find halal food near you.</p>${locBtn(false).replace('btn ghost sm', 'btn accent')}</div>`; bindLoc(); return;
       }
-      p.innerHTML = `<div class="empty"><p class="muted">${esc(e.message)}</p><button class="btn" id="hRetry">Try again</button></div>`; $('#hRetry').onclick = load; return;
+      if (e.status === 429) { poll = setTimeout(() => alive && load(), 2500); return; }
+      p.innerHTML = head('Couldn’t load places') + `<div class="empty"><p class="muted">${esc(e.message)}</p><button class="btn" id="hRetry">Try again</button></div>`; bindLoc(); $('#hRetry', p).onclick = () => { r = null; tries = 0; load(); }; return;
     }
-    if (r.pending) { const res = r; r = null; p.innerHTML = skel() + `<p class="muted small" style="text-align:center">Searching the map for the first time in your area — this takes up to a minute once, then it’s instant.</p>`;
-      const tm = setTimeout(() => { if (location.hash === '#/halal-places' && ++tries < 12) load(); }, 2500); window.addEventListener('hashchange', () => clearTimeout(tm), { once: true }); return; }
-    draw();
+    if (!alive || my !== seq) return;
+    if (res.pending) {
+      r = null;
+      if (++tries > 24) { p.innerHTML = head('The map is slow right now') + `<div class="empty"><p class="muted">The map service didn’t answer in time. Please try again in a minute.</p><button class="btn" id="hRetry">Try again</button></div>`; bindLoc(); $('#hRetry', p).onclick = () => { tries = 0; load(); }; return; }
+      p.innerHTML = skel() + `<p class="muted small" style="text-align:center">Searching the map for the first time in this area — this takes up to a minute once, then it’s instant.</p>`; bindLoc();
+      poll = setTimeout(() => alive && load(), 2500); return;
+    }
+    tries = 0; r = res; if (kind !== 'all' && !r.places.some(x => x.kind === kind)) kind = 'all'; draw();
   }
   function draw() {
     const kinds = [...new Set(r.places.map(x => x.kind))];
     const list = r.places.filter(x => kind === 'all' || x.kind === kind);
     const LB = { restaurant: 'Restaurants', fast_food: 'Fast food', cafe: 'Cafés', butcher: 'Butchers', shop: 'Shops' };
+    const LB1 = { restaurant: 'Restaurant', fast_food: 'Fast food', cafe: 'Café', butcher: 'Butcher', shop: 'Shop' };
     const dist = m => m < 1000 ? `${m} m` : `${(m / 1000).toFixed(1)} km`;
-    p.innerHTML = `
-      <div class="wp-hero wp-halal"><div class="wp-hero-k">Within ${km} km</div><div class="wp-hero-big">${r.places.length} halal place${r.places.length === 1 ? '' : 's'}</div></div>
+    const site = u => { try { const x = new URL(/^https?:\/\//i.test(u) ? u : 'https://' + u); return /^https?:$/.test(x.protocol) ? x.href : null; } catch { return null; } };
+    const tel = x => (x.phone || '').split(/[;,]/)[0].replace(/[^\d+]/g, '');
+    p.innerHTML = head(`${r.places.length} halal place${r.places.length === 1 ? '' : 's'}`) + `
       <div class="chips">${[1, 3, 5, 10].map(k => `<button class="chip ${k === km ? 'on' : ''}" data-km="${k}">${k} km</button>`).join('')}</div>
       ${kinds.length > 1 ? `<div class="chips"><button class="chip ${kind === 'all' ? 'on' : ''}" data-k="all">All</button>${kinds.map(k => `<button class="chip ${k === kind ? 'on' : ''}" data-k="${escAttr(k)}">${esc(LB[k] || k)}</button>`).join('')}</div>` : ''}
       ${list.length ? list.map(x => `<div class="card wp-place"><div class="row between"><div class="grow"><b>${esc(x.name)}</b>
-          <div class="faint small">${esc(LB[x.kind] || x.kind || '')}${x.cuisine.length ? ' · ' + esc(x.cuisine.join(', ')) : ''}${x.halal === 'only' ? ' · fully halal' : ''}</div>
+          <div class="faint small">${esc(LB1[x.kind] || x.kind || '')}${x.cuisine.length ? ' · ' + esc(x.cuisine.join(', ')) : ''}${x.halal === 'only' ? ' · fully halal' : ''}</div>
           ${x.address ? `<div class="muted small">${esc(x.address)}</div>` : ''}${x.hours ? `<div class="muted small">${I.clock} ${esc(x.hours)}</div>` : ''}</div>
           <span class="badge">${dist(x.dist)}</span></div>
         <div class="row" style="gap:8px;margin-top:10px"><a class="btn accent sm grow" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${x.lat},${x.lng}">${I.route} Go</a>
-          <a class="btn ghost sm grow" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${x.lat}%2C${x.lng}">${I.pin} Maps</a>
-          ${x.phone ? `<a class="btn ghost sm" href="tel:${escAttr(x.phone.replace(/[^\d+]/g, ''))}" aria-label="Call">${I.phone}</a>` : ''}</div></div>`).join('')
-        : `<div class="empty"><p class="muted">No halal places are tagged on the map near you yet. Try a bigger radius.</p></div>`}
+          <a class="btn ghost sm grow" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(x.name)}%20${x.lat}%2C${x.lng}">${I.pin} Maps</a>
+          ${tel(x) ? `<a class="btn ghost sm" href="tel:${escAttr(tel(x))}" aria-label="Call">${I.phone}</a>` : ''}
+          ${x.website && site(x.website) ? `<a class="btn ghost sm" target="_blank" rel="noopener" href="${escAttr(site(x.website))}" aria-label="Website">${I.globe || I.link || 'Web'}</a>` : ''}</div></div>`).join('')
+        : `<div class="empty"><p class="muted">${km < 10 ? 'No halal places are tagged on the map within ' + km + ' km. Try a bigger radius.' : 'No halal places are tagged on the map near here yet.'}</p>${km < 10 ? `<button class="btn" data-km="${km < 3 ? 3 : km < 5 ? 5 : 10}">Search ${km < 3 ? 3 : km < 5 ? 5 : 10} km</button>` : ''}</div>`}
       <p class="faint small" style="text-align:center;margin:14px 8px">Halal status comes from OpenStreetMap — please confirm with the restaurant.<br>Map data © OpenStreetMap contributors</p>`;
-    $$('[data-km]', p).forEach(b => b.onclick = () => { km = +b.dataset.km; LS.set('halalKm', km); load(); });
+    bindLoc();
+    $$('[data-km]', p).forEach(b => b.onclick = () => { km = +b.dataset.km; LS.set('halalKm', km); tries = 0; load(); });
     $$('[data-k]', p).forEach(b => b.onclick = () => { kind = b.dataset.k; draw(); });
   }
   load();
