@@ -11,6 +11,7 @@ import * as nasheeds from './nasheeds.js';
 import * as study from './study.js';
 import * as learnArabic from './learn-arabic.js';
 import * as quests from './quests.js';
-const MODS = [newToIslam, worshipPlus, socialPlus2, muslimTools, knowledgePlus, barakahWealth, engage, nasheeds, study, learnArabic, quests];
+import * as momentum from './momentum.js';
+const MODS = [newToIslam, worshipPlus, socialPlus2, muslimTools, knowledgePlus, barakahWealth, engage, nasheeds, study, learnArabic, quests, momentum];
 export const FEATURE_ROUTES = () => MODS.flatMap(m => m.routes || []);
 export const FEATURE_MENU = () => MODS.flatMap(m => m.menu || []);

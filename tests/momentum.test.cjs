@@ -1,0 +1,22 @@
+const {test,before,after}=require('node:test');const assert=require('node:assert/strict');const express=require('express');const {PGlite}=require('@electric-sql/pglite');
+let db,server,base;const DAY='2026-11-24';
+async function api(path,{method='GET',body}={}){const r=await fetch(base+path,{method,headers:{'x-user':'1','content-type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});return {status:r.status,data:await r.json()};}
+before(async()=>{db=new PGlite();
+  await db.exec(`CREATE TABLE users(id INT PRIMARY KEY,settings JSONB);INSERT INTO users VALUES(1,'{}');
+  CREATE TABLE fyp_views(user_id INT,lesson_id TEXT,day DATE,completed BOOLEAN,last_seen_at TIMESTAMPTZ DEFAULT now(),watched_ms INT DEFAULT 9000);
+  CREATE TABLE dhikr_logs(user_id INT,day DATE,count INT);CREATE TABLE push_subs(user_id INT);`);
+  const app=express();app.use(express.json());
+  const ctx={app,q:(s,a)=>db.query(s,a),todayFor:()=>DAY,localParts:()=>({hh:0,mm:0,day:DAY}),auth:(req,res,next)=>{req.user={id:+req.headers['x-user'],settings:{}};next();},wrap:fn=>(req,res)=>fn(req,res).catch(e=>res.status(500).json({error:e.message}))};
+  require('../lib/features/momentum.js')(ctx);server=app.listen(0);base='http://127.0.0.1:'+server.address().port;});
+after(()=>server?.close());
+const watch=n=>db.query(`INSERT INTO fyp_views(user_id,lesson_id,day,completed) SELECT 1,'l'||g,$1,true FROM generate_series(1,$2) g`,[DAY,n]);
+test('default goal 20, unmet, cannot claim',async()=>{const r=await api('/api/momentum');assert.equal(r.data.goal,20);assert.equal(r.data.xp,0);assert.equal(r.data.goalMet,false);assert.equal((await api('/api/momentum/claim',{method:'POST',body:{}})).status,400);});
+test('goal choices validated',async()=>{assert.equal((await api('/api/momentum/goal',{method:'PUT',body:{goal:7}})).status,400);const r=await api('/api/momentum/goal',{method:'PUT',body:{goal:10}});assert.equal(r.data.goal,10);});
+test('combo: 5 finished videos -> +3 XP, banked once (idempotent)',async()=>{await watch(5);let r=await api('/api/momentum');assert.equal(r.data.finishedToday,5);assert.equal(r.data.comboXp,3);assert.equal(r.data.xp,8);r=await api('/api/momentum');assert.equal(r.data.xp,8);});
+test('dhikr counts toward the goal; claim once gives +10 XP and a boost',async()=>{await db.query('INSERT INTO dhikr_logs VALUES(1,$1,40)',[DAY]);let r=await api('/api/momentum');assert.equal(r.data.xp,12);assert.equal(r.data.goalMet,true);
+  r=await api('/api/momentum/claim',{method:'POST',body:{}});assert.equal(r.data.justClaimed,true);assert.equal(r.data.goalClaimed,true);assert.equal(r.data.goalStreak,1);assert.ok(r.data.boostLeft>14*60000);assert.equal(r.data.xp,22);
+  r=await api('/api/momentum/claim',{method:'POST',body:{}});assert.equal(r.data.justClaimed,false);assert.equal(r.data.xp,22);});
+test('videos finished during the boost earn double XP, capped',async()=>{await new Promise(r=>setTimeout(r,20));await watch(5);const r=await api('/api/momentum');assert.equal(r.data.finishedToday,10);assert.equal(r.data.comboXp,6);
+  const b=(await db.query(`SELECT xp FROM engage_xp WHERE source='mo:boost'`)).rows[0];assert.equal(b.xp,5);assert.equal(r.data.xp,10+6+4+10+5);});
+test('goal streak counts consecutive claimed days',async()=>{await db.query(`INSERT INTO engage_xp(user_id,day,source,xp) VALUES(1,'2026-11-23','mo:goal',10),(1,'2026-11-22','mo:goal',10),(1,'2026-11-20','mo:goal',10)`);const r=await api('/api/momentum');assert.equal(r.data.goalStreak,3);assert.deepEqual(r.data.week.map(w=>w.met),[false,false,true,false,true,true,true]);});
+test('off switch persists',async()=>{let r=await api('/api/momentum/off',{method:'PUT',body:{off:true}});assert.equal(r.data.off,true);r=await api('/api/momentum/off',{method:'PUT',body:{off:false}});assert.equal(r.data.off,false);});
