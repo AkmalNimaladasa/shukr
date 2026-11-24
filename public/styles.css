@@ -2314,3 +2314,26 @@ body:has(#fypStories .sty-tray) .fyp-session{top:calc(env(safe-area-inset-top) +
 .ist-hero{margin-top:6px;padding:22px 22px 18px}.ist-hero h2{line-height:1.15;position:relative;z-index:1;text-shadow:0 1px 0 rgba(255,255,255,.35)}
 .ist-hero::after{opacity:.6}.ist-step b{word-break:break-word}
 .ist-gem em,.ist-gem p{font-variant-ligatures:common-ligatures}
+
+/* momentum: daily XP goal ring, Double-XP chip, /goal page (prefix mo-) */
+.mo-host{display:inline-flex;gap:6px;align-items:center}
+.mo-chip{position:relative;width:34px;height:34px;display:grid;place-items:center;color:#fff;text-decoration:none;border-radius:50%;background:rgba(0,0,0,.35);backdrop-filter:blur(8px)}
+.mo-chip svg{position:absolute;inset:0;width:34px;height:34px;transform:rotate(-90deg)}.mo-chip circle{fill:none;stroke-width:3.2}
+.mo-bg{stroke:rgba(255,255,255,.25)}.mo-fg{stroke:#20D5B5;stroke-linecap:round;transition:stroke-dasharray .6s}
+.mo-chip span{font:800 7.5px var(--font,inherit);letter-spacing:-.3px;position:relative}.mo-chip span svg{position:static;transform:none;width:14px;height:14px}
+.mo-chip.met{background:linear-gradient(135deg,#0EA5A4,#10B981)}
+.mo-boost{display:inline-flex;gap:4px;align-items:center;padding:4px 9px;border-radius:999px;font:800 12px var(--font,inherit);color:#1a1200;background:linear-gradient(135deg,#FFD54A,#FFB020);text-decoration:none;animation:moPulse 1.6s infinite}
+.mo-boost b{font-weight:700}.mo-boost.on{margin-top:8px;animation:none}
+@keyframes moPulse{50%{box-shadow:0 0 0 6px rgba(255,194,26,.18)}}
+.mo-hero{display:flex;gap:16px;align-items:center;padding:16px;border-radius:20px;background:var(--surface);border:1px solid var(--border);margin-bottom:12px}
+.mo-hero small{display:block;color:var(--text-2);font-size:13px;margin-top:2px}.mo-ht{font-size:18px;color:var(--text)}.mo-tip{color:var(--text-3)!important}
+.mo-big{flex:none;width:92px;height:92px;border-radius:50%;display:grid;place-content:center;text-align:center;background:conic-gradient(#10B981 calc(var(--p)*1%),var(--surface-2) 0);position:relative}
+.mo-big::before{content:"";position:absolute;inset:8px;border-radius:50%;background:var(--surface)}.mo-big b,.mo-big small{position:relative;color:var(--text)}.mo-big b{font-size:24px;line-height:1}.mo-big small{font-size:11px}
+.mo-week{display:flex;justify-content:space-between;gap:4px;margin-top:8px}.mo-week span{display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--text-3);font-size:12px}
+.mo-week i{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--border-2)}.mo-week i svg{width:15px;height:15px}
+.mo-week .on i{background:#10B981;border-color:#10B981;color:#fff}.mo-week .today small{color:var(--text);font-weight:800}
+.mo-combo{display:flex;gap:10px;align-items:baseline}.mo-combo b{font-size:28px;color:var(--text)}.mo-combo small{color:var(--text-2)}
+.mo-goals{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+.mo-g{padding:12px;border-radius:14px;border:2px solid var(--border);background:var(--surface);color:var(--text);text-align:left;cursor:pointer}
+.mo-g b{display:block;font-size:15px}.mo-g small{color:var(--text-2)}.mo-g.on{border-color:#10B981;background:color-mix(in srgb,#10B981 12%,var(--surface))}
+.qr>svg{width:34px;height:34px} /* global svg 20px rule shrank the quest ring */
