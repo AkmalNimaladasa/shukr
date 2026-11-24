@@ -166,19 +166,39 @@ export async function viewChat(id) {
         vrec = await recordAudio({ voice: true, maxMs: 60000, onLevel: lv => { frames++; orb.style.transform = `scale(${1 + Math.min(0.3, lv * 3)})`;
           if (lv < floor * 1.6) floor = floor * 0.95 + lv * 0.05; const th = Math.max(0.02, floor * 2.4);
           if (lv > th) { if (++loud > 5) { spoke = true; clearTimeout(silenceT); silenceT = null; if (vs.textContent !== 'Listening…') setState('listening', 'Listening…'); } }
-          else { loud = Math.max(0, loud - 1); if (spoke && !silenceT) silenceT = setTimeout(() => finish(), 550); }
+          else { loud = Math.max(0, loud - 1); if (spoke && !silenceT) silenceT = setTimeout(() => finish(), 450); }
           if (!spoke && frames > 60 * 12) finish(); } });
         setState('listening', 'Listening… speak now'); $('#vmic', ov).innerHTML = I.stop; }
       catch (e) { setState('', e.message || 'Microphone permission denied'); }
     };
     // Alim's voice: sentence-chunked TTS so he starts speaking within ~1 s, one reusable <audio> (autoplay-safe on iOS/Android).
     const player = new Audio(); player.preload = 'auto'; let queue = [], speaking = false, speechId = 0;
-    const stopSpeech = () => { speechId++; queue = []; speaking = false; try { player.pause(); } catch {} };
+    const stopSpeech = () => { speechId++; queue = []; speaking = false; try { player.pause(); } catch {} try { window.speechSynthesis?.cancel(); } catch {} };
+    // Instant voice (default): the phone's own speech engine starts talking the moment the first words arrive — no server
+    // round-trip (~2.5 s per sentence) and no AI credits. "Natural voice" keeps the server TTS for users who prefer it.
+    const SS = window.speechSynthesis, instant = () => !!SS && typeof SpeechSynthesisUtterance !== 'undefined' && LS.get('voiceEngine', 'instant') === 'instant' && (SS.getVoices?.() || []).length > 0; // no voices installed -> server voice
+    let devVoice; const pickVoice = () => { if (devVoice !== undefined) return devVoice; const vs = SS?.getVoices?.() || []; if (!vs.length) return null;
+      const want = (state.user.settings.lang || navigator.language || 'en').slice(0, 2).toLowerCase(); const m = vs.filter(v => (v.lang || '').toLowerCase().startsWith(want));
+      const pool = m.length ? m : vs.filter(v => /^en/i.test(v.lang || ''));
+      devVoice = pool.find(v => /google|natural|enhanced|premium|siri/i.test(v.name) && v.localService !== false) || pool.find(v => v.localService) || pool[0] || null; return devVoice; };
+    try { SS?.getVoices(); SS && SS.addEventListener?.('voiceschanged', () => { devVoice = undefined; }); } catch {}
+    const primeSpeech = () => { try { if (instant()) { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; SS.speak(u); } } catch {} }; // unlocks iOS speech inside the tap
     const chunksOf = t => { const s = t.replace(/\[(.*?)\]\([^)]*\)/g, '$1').replace(/https?:\S+/g, '').replace(/[*#_`>|~]/g, '').replace(/\s+/g, ' ').trim().match(/[^.!?؟…]+[.!?؟…]*\s*/g) || [];
       const out = []; let cur = ''; for (const x of s) { if ((cur + x).length > 220 && cur) { out.push(cur.trim()); cur = ''; } cur += x; if (!out.length && cur.length > 60) { out.push(cur.trim()); cur = ''; } } if (cur.trim()) out.push(cur.trim()); return out; };
     const ttsUrl = (text, fast) => fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, fast: !!fast, voice: state.user.settings.alimVoice || 'onyx' }) }).then(r => { if (!r.ok) throw new Error('Voice unavailable'); return r.blob(); }).then(b => URL.createObjectURL(b));
     // Streaming speech: sentences are voiced the moment they arrive from Alim, played back in order.
-    const makeSpeaker = () => { const id = ++speechId; const urls = [], parts = []; let i = 0, ended = false, playing = false, buf = '';
+    const makeDeviceSpeaker = () => { const id = ++speechId; let buf = '', n = 0, done = 0, ended = false, started = false;
+      const clean = t => t.replace(/\[(.*?)\]\([^)]*\)/g, '$1').replace(/https?:\S+/g, '').replace(/[*#_`>|~]/g, '').replace(/ﷺ/g, ' peace be upon him ').replace(/\s+/g, ' ').trim();
+      const fin = () => { if (id !== speechId || !alive) return; if (ended && done >= n) { speaking = false; if (auto) listen(); else setState('', 'Tap the mic to reply'); } };
+      const push = t => { t = clean(t); if (t.length < 1 || id !== speechId) return; n++; const u = new SpeechSynthesisUtterance(t); const v = pickVoice(); if (v) { u.voice = v; u.lang = v.lang; } u.rate = 1.04;
+        u.onstart = () => { if (id === speechId && !started) { started = true; setState('speaking', 'Alim is speaking'); speaking = true; } };
+        u.onend = u.onerror = () => { done++; fin(); }; try { SS.resume(); } catch {} SS.speak(u); };
+      return { say(t) { push(t); }, feed(t) { buf += t; let m; // speak the first clause as early as possible, then sentence by sentence
+          while ((m = buf.match(n ? /^[\s\S]{8,}?[.!?؟…](\s|$)/ : /^[\s\S]{6,}?([.!?؟…]|[,،;:—–](?=\s))(\s|$)/))) { push(m[0]); buf = buf.slice(m[0].length); }
+          if (!n && buf.length > 28) { const k = buf.lastIndexOf(' ', 26); if (k > 8) { push(buf.slice(0, k)); buf = buf.slice(k); } } },
+        end() { if (buf.trim()) push(buf); buf = ''; ended = true; fin(); } }; };
+    const makeSpeaker = () => instant() ? makeDeviceSpeaker() : makeServerSpeaker();
+    const makeServerSpeaker = () => { const id = ++speechId; const urls = [], parts = []; let i = 0, ended = false, playing = false, buf = '';
       const clean = t => t.replace(/\[(.*?)\]\([^)]*\)/g, '$1').replace(/https?:\S+/g, '').replace(/[*#_`>|~]/g, '').replace(/\s+/g, ' ').trim();
       const push = t => { t = clean(t); if (t.length < 2) return; parts.push(t); urls.push(parts.length === 1 ? Promise.resolve('/api/tts/stream?' + new URLSearchParams({ text: t, voice: state.user.settings.alimVoice || 'onyx' })) : ttsUrl(t, true)); if (!playing) next(); };
       const next = async () => { if (id !== speechId || !alive) return;
@@ -215,13 +235,14 @@ export async function viewChat(id) {
         lastReply = reply; sp.end();
       } catch (e) { setState('', e.message || 'Something went wrong'); }
     };
-    $('#vmic', ov).onclick = () => srObj ? srObj.stop() : vrec ? finish() : listen();
-    listen();
+    $('#vmic', ov).onclick = () => { primeSpeech(); return srObj ? srObj.stop() : vrec ? finish() : listen(); };
+    primeSpeech(); listen();
   }
   // ---- menu ----
   $('#cMenu').onclick = () => sheet(`<h3>Chat</h3>
     <button class="opt" id="oNew"><span class="e">${I.edit}</span><div>New chat</div></button>
     <button class="opt" id="oVoice"><span class="e">${I.wave}</span><div><div>Voice mode</div><div class="d">Talk with Alim hands-free</div></div></button>
+    <div class="opt"><span class="e">${I.wave}</span><div class="grow"><div>Instant voice</div><div class="d">Phone’s own voice — replies start immediately. Off = natural voice (slower)</div></div><label class="toggle"><input type="checkbox" id="oInstant" ${LS.get('voiceEngine', 'instant') === 'instant' ? 'checked' : ''}><span></span></label></div>
     <div class="opt"><span class="e">${I.wave}</span><div class="grow"><div>Auto-listen after Alim speaks</div></div><label class="toggle"><input type="checkbox" id="oAuto" ${LS.get('voiceAuto', true) ? 'checked' : ''}><span></span></label></div>
     <button class="opt" id="oSearch"><span class="e">${I.search}</span><div>Search all chats</div></button>
     <button class="opt" id="oMem"><span class="e">${I.layers}</span><div><div>Alim’s memory${hasMemoryPlan() ? '' : ' 🔒'}</div><div class="d">${hasMemoryPlan() ? 'See and edit what Alim remembers' : 'Premium — Alim remembers you across chats'}</div></div></button>
@@ -229,6 +250,7 @@ export async function viewChat(id) {
     $('#oNew', sh).onclick = () => { close(); go('/chat/new'); };
     $('#oVoice', sh).onclick = () => { close(); openVoice(); };
     $('#oAuto', sh).onchange = e => LS.set('voiceAuto', e.target.checked);
+    { const oi = $('#oInstant', sh); if (oi) oi.onchange = e => LS.set('voiceEngine', e.target.checked ? 'instant' : 'natural'); }
     $('#oMem', sh).onclick = () => { close(); go('/memory'); };
     $('#oSearch', sh).onclick = () => { close(); searchChats(); };
     $('#oRen', sh) && ($('#oRen', sh).onclick = async () => { const t = prompt('Rename chat', $('#topbar .title').textContent); if (t) { await api('/conversations/' + convId, { method: 'PATCH', body: { title: t } }); $('#topbar .title').textContent = t; loadChatList(); } close(); });
