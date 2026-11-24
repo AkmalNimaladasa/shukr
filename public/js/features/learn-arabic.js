@@ -8,7 +8,7 @@ const load = () => DATA ||= fetch('/data/quran-arabic.json', { cache: 'force-cac
 const AU = p => p ? 'https://audio.qurancdn.com/' + p : '';
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const POS = { N: 'noun', V: 'verb', P: 'particle', PN: 'proper name', PRON: 'pronoun', ADJ: 'adjective' };
-const ayahHTML = e => `<div class="ar ar-ay" dir="rtl">${e.pre ? '… ' : ''}${e.ay.split(' ').map((t, i) => i + 1 === e.w ? `<mark>${esc(t)}</mark>` : esc(t)).join(' ')}${e.post ? ' …' : ''}</div>`;
+const ayahHTML = e => `<div class="ar ar-ay" dir="rtl">${e.ay.split(' ').map((t, i, a) => { const s = i + 1 === e.w ? `<mark>${esc(t)}</mark>` : esc(t); return (i === 0 && e.pre ? '…\u00a0' : '') + s + (i === a.length - 1 && e.post ? '\u00a0…' : ''); }).join(' ')}</div>`;
 let sfx = null; const ding = ok => { try { sfx ||= new (window.AudioContext || window.webkitAudioContext)(); const o = sfx.createOscillator(), g = sfx.createGain(); o.type = 'sine';
   const t = sfx.currentTime; (ok ? [660, 880] : [300, 220]).forEach((f, k) => o.frequency.setValueAtTime(f, t + k * 0.09)); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.18, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
   o.connect(g).connect(sfx.destination); o.start(t); o.stop(t + 0.32); } catch {} vibrate(ok ? 10 : [40, 40, 40]); };
@@ -85,11 +85,15 @@ export async function viewLesson(unitN, mode) {
   let words, newIds = [];
   if (mode === 'review') { const r = await api('/arabic/review'); let ids = r.ids; if (!ids.length) ids = shuffle(s.known.map(k => k[0])).slice(0, 12); if (!ids.length) { toast('Learn a lesson first'); return go('/arabic'); } words = ids.map(i => D.words[i - 1]); }
   else { const u = D.units[unitN - 1]; if (!u) return go('/arabic'); words = u.w.map(i => D.words[i - 1]); const known = new Set(s.known.map(k => k[0])); newIds = words.filter(w => !known.has(w.id)).map(w => w.id); }
-  const pool = D.words.slice(0, Math.max(200, (words[words.length - 1]?.id || 0) + 40));
-  const distract = (w, k = 3, f = x => x.m) => { const seen = new Set([norm(f(w))]); const out = []; for (const x of shuffle(pool.filter(x => x.id !== w.id && x.pos === w.pos)).concat(shuffle(pool.filter(x => x.id !== w.id)))) { const key = norm(f(x)); if (seen.has(key) || clash(x, w) || out.some(o => clash(o, x))) continue; seen.add(key); out.push(x); if (out.length >= k) break; } return out; };
+  let pool = D.words.slice(0, Math.max(200, (words[words.length - 1]?.id || 0) + 40)).filter(x => !(x.lem === 'اللَّه' || x.lem === 'رَبّ'));
+  const SACRED = /^(allah|lord|god|the lord|ar-rahman|the most merciful)/i;
+  const isSacred = x => x.lem === 'اللَّه' || x.lem === 'رَبّ' || x.lem === 'إِلٰه' || SACRED.test(x.m);
+  const distract = (w, k = 3, f = x => x.m) => { if (isSacred(w)) pool = pool.filter(x => x.pos !== 'PN' && !/(shaytan|satan|devil|iblis|firaun|pharaoh|idol|taghut)/i.test(x.m)); return _distract(w, k, f); };
+  const _distract = (w, k = 3, f = x => x.m) => { const seen = new Set([norm(f(w))]); const out = []; for (const x of shuffle(pool.filter(x => x.id !== w.id && x.pos === w.pos)).concat(shuffle(pool.filter(x => x.id !== w.id)))) { const key = norm(f(x)); if (seen.has(key) || clash(x, w) || out.some(o => clash(o, x))) continue; seen.add(key); out.push(x); if (out.length >= k) break; } return out; };
   // Build exercise queue: lesson = 4 chunks of 5 words; each chunk: intro cards → recognise → choose arabic → listen → match; finish with ayah reading.
   const norm = s => String(s).toLowerCase().replace(/^to /, '').replace(/[^a-z\u0600-\u06ff ]/g, '').trim();
-  const clash = (a, b) => { const A = norm(a.m), B = norm(b.m); return A === B || A.split(' / ').some(x => B.split(' / ').includes(x)); };
+  const parts = m => norm(m).split('/').map(x => x.trim()).filter(Boolean); const NEG = /^(not|no|never|will not|did not|is not|nor)\b/;
+  const clash = (a, b) => { const A = parts(a.m), B = parts(b.m); return A.some(x => B.includes(x)) || (A.some(x => NEG.test(x)) && B.some(x => NEG.test(x))) || A[0].split(' ')[0] === B[0].split(' ')[0]; };
   const Q = [];
   const chunkSize = 5;
   for (let c = 0; c < words.length; c += chunkSize) {
@@ -129,6 +133,7 @@ export async function viewLesson(unitN, mode) {
   };
   const step = () => {
     if (i >= Q.length) return fin();
+    pool = D.words.slice(0, Math.max(200, (words[words.length - 1]?.id || 0) + 40)).filter(x => !(x.lem === 'اللَّه' || x.lem === 'رَبّ'));
     const x = Q[i], w = x.w;
     let body = '';
     if (x.t === 'intro') body = `<div class="ar-qt">New word</div><div class="ar-card"><button class="ar-say" id="say">${I.speaker}</button><div class="ar ar-w">${esc(w.ar)}</div><div class="ar-tr">${esc(w.t)}</div><div class="ar-m">${esc(w.m)}</div>

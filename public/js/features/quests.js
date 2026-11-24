@@ -22,10 +22,10 @@ export async function viewQuests() {
       <div class="q-perfect">${I.flame}<b>${s.perfect}</b><small>perfect day${s.perfect === 1 ? '' : 's'}</small></div></div>
     <div class="q-list">${s.quests.map(x => `<div class="q-card ${x.claimed ? 'claimed' : x.done ? 'done' : ''}">
       <div class="q-ic">${I[x.icon] || I.star}</div>
-      <div class="grow"><b>${esc(x.title)}</b><div class="q-bar"><i style="width:${x.n / x.goal * 100}%"></i></div><small>${x.n}/${x.goal}${x.unit ? ' ' + x.unit : ''} · +${x.xp} XP</small></div>
+      <div class="grow"><b>${esc(x.title)}</b><div class="q-bar"><i style="width:${x.n / x.goal * 100}%"></i></div><small>${x.unit ? `${x.n}/${x.goal} lesson XP` : `${x.n}/${x.goal}`} · reward +${x.xp} XP</small></div>
       ${x.claimed ? `<span class="q-ok">${I.check}</span>` : x.done ? `<button class="btn accent sm q-claim" data-claim="${x.id}">Claim</button>` : `<button class="btn ghost sm" data-go="${x.url}">Go</button>`}</div>`).join('')}</div>
     <button class="q-chest ${s.allClaimed && !s.chest ? 'ready' : ''} ${s.chest ? 'open' : ''}" id="qChest" ${s.allClaimed && !s.chest ? '' : 'disabled'}>
-      <span class="q-chest-ic">${s.chest ? '🎉' : '🎁'}</span><span class="grow"><b>${s.chest ? 'Chest opened — see you tomorrow!' : s.allClaimed ? 'Open your bonus chest!' : 'Bonus chest'}</b><small>${s.chest ? 'Keep your perfect-day streak going' : 'Finish all 3 quests · XP, jackpots or a streak freeze'}</small></span></button>
+      <span class="q-chest-ic">${s.chest ? I.check : (I.gift || I.star)}</span><span class="grow"><b>${s.chest ? 'Chest opened — see you tomorrow!' : s.allClaimed ? 'Open your bonus chest!' : 'Bonus chest'}</b><small>${s.chest ? 'Keep your perfect-day streak going' : 'Finish all 3 quests · XP, jackpots or a streak freeze'}</small></span></button>
     ${L ? leagueHTML(L) : ''}`;
   $$('[data-go]', p).forEach(b => b.onclick = () => go(b.dataset.go));
   $$('[data-claim]', p).forEach(b => b.onclick = async () => { b.disabled = true; try { const n = await api('/quests/claim', { body: { id: b.dataset.claim } }); vibrate([15, 40, 15]); const x = n.quests.find(z => z.id === b.dataset.claim); toast(`+${x.xp} XP`); LS.set('q.cache', n); viewQuests(); } catch (e) { toast(e.message); b.disabled = false; } });
@@ -36,7 +36,7 @@ function leagueHTML(L) {
   const c = TIER_C[L.tier];
   return `<div class="card q-league" style="--tc:${c}"><div class="row between" style="align-items:center"><div class="q-tier"><span class="q-shield">${I.shield || I.star}</span><div><b>${esc(L.tierName)} League</b><small>Ends in ${fmtLeft(L.endsAt - Date.now())}</small></div></div><div class="q-myxp"><b>${L.myXp}</b><small>XP this week</small></div></div>
     ${L.lastResult === 'promoted' ? `<div class="q-res up">${I.arrowUp || '▲'} Promoted last week — MashaAllah!</div>` : L.lastResult === 'demoted' ? `<div class="q-res down">Moved down a league — climb back this week</div>` : ''}
-    <p class="faint small" style="margin:8px 0">${L.nextTier ? `Top ${L.promoteN} move up to <b>${esc(L.nextTier)}</b> on Monday.` : 'You’re in the top league — stay in the top to keep it.'} Earn XP from quests, dhikr, videos and Arabic.</p>
+    <p class="faint small" style="margin:8px 0">${L.nextTier ? `Top ${L.promoteN} ${L.promoteN === 1 ? 'moves' : 'move'} up to <b>${esc(L.nextTier)}</b> on Monday.` : 'You’re in the top league — stay in the top to keep it.'} Earn XP from quests, dhikr, videos and Arabic.</p>
     <div class="q-board">${L.board.map((b, i) => `${i === L.promoteN ? '<div class="q-zone">▲ promotion zone ▲</div>' : ''}<div class="q-row ${b.you ? 'me' : ''}"><span class="q-rk">${i + 1}</span><b class="grow">${esc(b.you ? 'You' : b.name)}</b><span>${b.xp} XP</span></div>`).join('')}</div></div>`;
 }
 export const routes = [[/^\/quests$/, () => viewQuests(), 'quests']];

@@ -73,6 +73,26 @@ async function backup(force) {
   } catch (e) { dirty = true; console.log('backup failed', e.message); }
 }
 setInterval(() => backup(false), 20 * 1000);
+// Daily dated snapshots (kept 30 days) so a bad save or corruption can be rolled back to any of the last 30 days.
+async function dailySnapshot() {
+  if (!lite || !s3) return;
+  const day = new Date().toISOString().slice(0, 10), key = `db/daily/shukr-${day}.tar.gz`;
+  try {
+    const { PutObjectCommand, HeadObjectCommand, ListObjectsV2Command, DeleteObjectCommand } = require('@aws-sdk/client-s3');
+    try { await s3.send(new HeadObjectCommand({ Bucket: process.env.S3_BUCKET, Key: key })); return; } catch {}
+    const job = chain.then(() => lite.dumpDataDir('gzip')); chain = job.catch(() => {}); const blob = await job;
+    const body = Buffer.from(await blob.arrayBuffer());
+    await s3.send(new PutObjectCommand({ Bucket: process.env.S3_BUCKET, Key: key, Body: body, ContentType: 'application/gzip' }));
+    console.log('daily snapshot', key, body.length);
+    const old = await s3.send(new ListObjectsV2Command({ Bucket: process.env.S3_BUCKET, Prefix: 'db/daily/' }));
+    const cut = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+    for (const o of old.Contents || []) { const d = (o.Key.match(/shukr-(\d{4}-\d{2}-\d{2})/) || [])[1]; if (d && d < cut) await s3.send(new DeleteObjectCommand({ Bucket: process.env.S3_BUCKET, Key: o.Key })); }
+  } catch (e) { console.log('daily snapshot failed', e.message); }
+}
+setTimeout(dailySnapshot, 90 * 1000); setInterval(dailySnapshot, 3 * 3600 * 1000);
+module.exports.__snap = { listSnapshots: async () => { if (!s3) return []; const { ListObjectsV2Command } = require('@aws-sdk/client-s3'); const r = await s3.send(new ListObjectsV2Command({ Bucket: process.env.S3_BUCKET, Prefix: 'db/' })); return (r.Contents || []).map(o => ({ key: o.Key, size: o.Size, at: o.LastModified })).sort((a, b) => String(b.key).localeCompare(String(a.key))); },
+  getSnapshot: async key => { const { GetObjectCommand } = require('@aws-sdk/client-s3'); const r = await s3.send(new GetObjectCommand({ Bucket: process.env.S3_BUCKET, Key: key })); return Buffer.from(await r.Body.transformToByteArray()); },
+  snapshotNow: async () => { await backup(true); } };
 for (const sig of ['SIGTERM', 'SIGINT']) process.on(sig, async () => { console.log(sig, '— saving DB'); await backup(true).catch(() => {}); process.exit(0); });
 
 const SCHEMA2 = require('./lib/schema2');
@@ -745,6 +765,15 @@ require('./lib/video-editor')(ctx);
 require('./lib/creator-quests')(ctx);
 require('./lib/sound-library')(ctx);
 require('./lib/ummah')(ctx);
+// Admin-only backups: list the snapshots in storage and download one (to keep a copy outside Roar).
+app.get('/api/admin/backups', auth, wrap(async (req, res) => { if (!ctx.isAdmin?.(req.user)) return res.status(403).json({ error: 'Developers only' }); res.json({ snapshots: await module.exports.__snap.listSnapshots() }); }));
+app.get('/api/admin/backups/download', auth, wrap(async (req, res) => {
+  if (!ctx.isAdmin?.(req.user)) return res.status(403).json({ error: 'Developers only' });
+  const key = String(req.query.key || 'db/shukr-pgdata.tar.gz'); if (!/^db\/(daily\/shukr-\d{4}-\d{2}-\d{2}|shukr-pgdata)\.tar\.gz$/.test(key)) return res.status(400).json({ error: 'Bad key' });
+  if (key === 'db/shukr-pgdata.tar.gz') await module.exports.__snap.snapshotNow();
+  const buf = await module.exports.__snap.getSnapshot(key);
+  res.setHeader('Content-Type', 'application/gzip'); res.setHeader('Content-Disposition', `attachment; filename="${key.split('/').pop().replace('pgdata', 'latest-' + new Date().toISOString().slice(0, 10))}"`); res.end(buf);
+}));
 // Feature plug-ins: every lib/features/*.js exports function(ctx)
 for (const f of require('fs').readdirSync(require('path').join(__dirname, 'lib', 'features')).filter(f => f.endsWith('.js')).sort()) {
   try { require('./lib/features/' + f)(ctx); } catch (e) { console.error('feature', f, e.message); }
