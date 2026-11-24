@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import sys; sys.exit('MEDIA PRODUCTION STOPPED by owner — do not render new videos.')  # MEDIA PRODUCTION STOPPED
 """Render Shukr house videos (720x1280, ~16-22s): animated nature/abstract backgrounds, loud clear TTS voiceover
 or a voice-only nasheed bed, burned-in captions. No musical instruments anywhere.
 Usage: python3 scripts/build-house-videos.py  (needs ROAR_API_KEY/ROAR_BASE_URL; ffmpeg-static)"""

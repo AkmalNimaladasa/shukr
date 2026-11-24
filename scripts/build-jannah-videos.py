@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import sys; sys.exit('MEDIA PRODUCTION STOPPED by owner — do not render new videos.')  # MEDIA PRODUCTION STOPPED
 """Jannah Life content generator (@thejannahlife): beautiful animated 9:16 videos describing Jannah strictly as the
 Qur'an describes it. Each video = 2-3 AI-painted scenes (no people/faces/animals/text) with slow Ken-Burns motion and
 light particles, the Arabic ayah + Pickthall English (public domain) as captions, and audio = Arabic recitation of the ayat ONLY (Quran Foundation verse audio,
