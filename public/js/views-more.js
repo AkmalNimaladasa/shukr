@@ -246,7 +246,7 @@ export async function viewSettings() {
       <a class="list-item" href="#/prayer"><div class="grow">Adhan sound per prayer<div class="faint small">${esc(({ adhan: 'Adhan', sound: 'Notification tone', silent: 'Silent' })[r.adhanMode || 'sound'])}</div></div>${I.fwd || '›'}</a>
       ${tog('r_iqamah', !!r.iqamah, 'Jamaah reminder', 'Time to head to the masjid, after each adhan')}
       <div class="seg sm" id="iqW" ${r.iqamah ? '' : 'hidden'}>${[5, 10, 15, 20].map(n => `<button data-iq="${n}" class="${(r.iqamahAfter || 10) === n ? 'on' : ''}">${n} min after</button>`).join('')}</div>
-      ${tog('r_missed', !!r.missed, 'Missed-prayer check', '30 min before a prayer time ends, if not marked')}
+      ${tog('r_missed', r.missed !== false, 'Unprayed-prayer reminder', '20 min before a fard prayer’s time ends, if you haven’t ticked it')}
       ${tog('r_sunrise', r.sunrise !== false, 'Sunrise warning', '10 minutes before Fajr time ends')}
       ${tog('r_duha', !!r.duha, 'Duha prayer', 'Mid-morning, well after sunrise')}
       ${tog('r_tahajjud', !!r.tahajjud, 'Tahajjud', 'At the start of the last third of the night')}

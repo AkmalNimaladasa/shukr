@@ -1,6 +1,6 @@
 // Shukr service worker — network-first for the app shell (never serves stale code when online), cache fallback offline; push reminders
-const V = 'shukr-1795517682';
-const SHELL = ['/', '/app.bundle.js?v=1795517682', '/app.bundle.css?v=1795517682', '/vendor/adhan.js', '/manifest.webmanifest', '/icons/icon-192.png',
+const V = 'shukr-1795522630';
+const SHELL = ['/', '/app.bundle.js?v=1795522630', '/app.bundle.css?v=1795522630', '/vendor/adhan.js', '/manifest.webmanifest', '/icons/icon-192.png',
   '/data/adhkar.json', '/data/names.json', '/data/ayat.json', '/data/duas.json', '/data/hadith40.json', '/data/akhirah.json', '/data/quran-meta.json', '/data/hadith-books.json', '/data/quran-translations.json', '/data/audiobooks.json'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(V).then(c => Promise.all(SHELL.map(u => c.add(u).catch(() => {})))).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== V).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
@@ -37,11 +37,16 @@ self.addEventListener('push', e => {
   e.waitUntil(self.registration.showNotification(d.title || 'Shukr', {
     body: d.body || '', icon: '/icons/icon-192.png', badge: '/icons/badge-96.png', tag: d.tag, renotify: !!d.tag, vibrate: d.silent ? [] : (d.vibrate || [200, 100, 200]), silent: !!d.silent,
     requireInteraction: !!d.requireInteraction, data: { url: d.url || '/', adhan: d.adhan || null, prayer: d.prayer || null },
-    actions: d.adhan ? [{ action: 'play', title: '▶ Play adhan' }, { action: 'stop', title: 'Dismiss' }] : (d.tag === 'jummah' ? [{ action: 'open', title: 'See mosques' }] : [])
-  }).then(() => d.adhan ? self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cs => cs.forEach(c => c.postMessage({ type: 'adhan', voice: d.adhan, prayer: d.prayer })))) : null));
+    actions: Array.isArray(d.actions) && d.actions.length ? d.actions.slice(0, 2) : d.adhan ? [{ action: 'play', title: '▶ Play adhan' }, { action: 'stop', title: 'Dismiss' }] : (d.tag === 'jummah' ? [{ action: 'open', title: 'See mosques' }] : [])
+  }).then(() => d.adhan ? self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cs => cs.forEach(c => c.postMessage({ type: 'adhan', voice: d.adhan, prayer: d.prayer }))) : null));
 });
 self.addEventListener('notificationclick', e => {
   e.notification.close();
+  // '✓ I prayed' straight from the notification — logs the fard prayer without opening the app (uses the login cookie).
+  if (e.action && e.action.startsWith('prayed:')) { const prayer = e.action.slice(7);
+    e.waitUntil(fetch('/api/prayer', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prayer, status: 'late' }) })
+      .then(r => self.registration.showNotification(r.ok ? 'Logged ✓ — may Allah accept it' : 'Open Shukr to log your prayer', { tag: 'prayed-ok', icon: '/icons/icon-192.png', badge: '/icons/badge-96.png', silent: true, data: { url: '/#/prayer?quick=1' } }))
+      .catch(() => clients.openWindow('/#/prayer?quick=1'))); return; }
   if (e.action === 'stop') { e.waitUntil(self.clients.matchAll({ type: 'window' }).then(cs => cs.forEach(c => c.postMessage({ type: 'adhan-stop' })))); return; }
   const url = (e.notification.data && e.notification.data.url) || '/';
   e.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cs => {

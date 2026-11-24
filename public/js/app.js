@@ -4,6 +4,7 @@ import { viewAudio } from './views-audio.js';
 import { viewQuests, viewUniversity, viewLesson, viewSoundCredits } from './views-creator.js';
 import './polyfills.js';
 import { installApp, mountInstallPill, showInstall } from './install.js';
+import { initQuickPrayer } from './features/quick-prayer.js';
 import { $, $$, esc, I, api, state, toast, applyPrefs, route, go, LS, startNasheed, TZ, guessMethod, saveSettings, sectionOn } from './core.js';
 import * as D from './views-daily.js';
 import * as W from './views-worship.js';
@@ -160,6 +161,7 @@ function started() {
   try { await boot(); } catch (e) { if (e && e.status !== 401 && !/sign in|auth/i.test(e.message || '')) { console.warn('boot', e); beacon('boot-error', { message: String(e && e.message), stack: String(e && e.stack || '').slice(0, 600) }); } authView(); }
   started();
   setTimeout(mountInstallPill, 4000);
+  initQuickPrayer();
   setTimeout(() => { if (state.user?.settings?.lat != null) fetch('/api/worship-plus/halal/warm', { method: 'POST', credentials: 'same-origin' }).catch(() => {}); }, 6000);
 })();
 
