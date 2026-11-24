@@ -1,5 +1,5 @@
 // Ummah hub: Jummah finder, mosque map (community database on OpenStreetMap), adhan player & sound settings.
-import { $, $$, esc, escAttr, LS, I, api, state, toast, vibrate, shell, bindGo, go, sheet, saveSettings, loadingHTML, empty, onCleanup, duckNasheed } from './core.js';
+import { $, $$, esc, escAttr, LS, I, api, state, toast, vibrate, shell, bindGo, go, sheet, saveSettings, loadingHTML, empty, onCleanup, duckNasheed, computeTimes } from './core.js';
 import { locate } from './views-worship.js';
 
 // ---------------- ADHAN ----------------
@@ -14,17 +14,36 @@ export async function playAdhan(voiceId, { prayer = null, short = false } = {}) 
   bar.innerHTML = `<span class="ab-ic">${I.mosque}</span><div class="grow"><b>${prayer ? esc(prayer[0].toUpperCase() + prayer.slice(1)) + ' · ' : ''}Adhan</b><div class="faint small">${esc(v.label)}</div></div><button class="btn ghost sm" id="abStop">${I.stop} Stop</button>`;
   document.body.append(bar); document.documentElement.classList.add('adhan-playing'); $('#abStop', bar).onclick = stopAdhan;
   player.onended = stopAdhan;
-  try { await player.play(); } catch { stopAdhan(); toast('Tap play to hear the adhan — your phone blocked autoplay.'); }
+  try { await player.play(); } catch { const pl = player; document.querySelector('.adhan-bar')?.remove(); document.documentElement.classList.remove('adhan-playing');
+    document.querySelector('.adhan-gate')?.remove(); const g = document.createElement('div'); g.className = 'adhan-gate';
+    g.innerHTML = `<button class="ag-play" aria-label="Play adhan">${I.play}</button><b>${prayer ? esc(prayer[0].toUpperCase() + prayer.slice(1)) + ' — ' : ''}it’s time to pray</b><small>Tap to play the adhan</small><button class="ag-x">Not now</button>`;
+    document.body.append(g);
+    g.querySelector('.ag-play').onclick = async () => { g.remove(); document.body.append(bar); document.documentElement.classList.add('adhan-playing'); player = pl; try { await pl.play(); } catch { stopAdhan(); } };
+    g.querySelector('.ag-x').onclick = () => { g.remove(); player = pl; stopAdhan(); }; }
 }
 // Service worker asks open windows to play when an adhan notification arrives.
+const adhanKey = p => 'adhanPlayed:' + new Date().toDateString() + ':' + p;
+const markPlayed = p => { try { localStorage.setItem(adhanKey(p), '1'); } catch {} };
+const wasPlayed = p => { try { return !!localStorage.getItem(adhanKey(p)); } catch { return false; } };
+let pendingAdhan = null;
+function fireAdhan(voice, prayer) { if (prayer && wasPlayed(prayer)) return; if (prayer) markPlayed(prayer); playAdhan(voice, { prayer }); }
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && pendingAdhan && Date.now() - pendingAdhan.at < 10 * 60000) { const a = pendingAdhan; pendingAdhan = null; fireAdhan(a.voice, a.prayer); } });
 if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => {
-  if (e.data?.type === 'adhan' && document.visibilityState === 'visible') playAdhan(e.data.voice, { prayer: e.data.prayer });
+  if (e.data?.type === 'adhan') { if (document.visibilityState === 'visible') fireAdhan(e.data.voice, e.data.prayer); else pendingAdhan = { voice: e.data.voice, prayer: e.data.prayer, at: Date.now() }; }
   if (e.data?.type === 'adhan-stop') stopAdhan();
 });
 // Opening from a notification: #/prayer?adhan=fajr
-window.addEventListener('hashchange', checkAdhanHash); setTimeout(checkAdhanHash, 1500);
-function checkAdhanHash() { const m = location.hash.match(/[?&]adhan=(\w+)/); if (!m || !state.user) return; const r = state.user.settings.reminders || {};
-  playAdhan(m[1] === 'fajr' ? (r.fajrVoice || 'fajr-ramadan') : (r.adhanVoice || 'madinah'), { prayer: m[1] }); history.replaceState(null, '', location.hash.replace(/[?&]adhan=\w+/, '')); }
+window.addEventListener('hashchange', () => checkAdhanHash()); setTimeout(() => checkAdhanHash(), 1500);
+// 3) In-app scheduler: whenever Shukr is open, play the adhan at prayer time itself (doesn't depend on push delivery).
+setInterval(() => { try {
+  if (!state.user || document.visibilityState !== 'visible') return; const r = state.user.settings?.reminders || {};
+  if (r.prayers === false) return; const t = computeTimes(new Date()); if (!t) return; const now = Date.now();
+  for (const p of ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha']) { if (r.prayerList && r.prayerList[p] === false) continue;
+    const mode = (r.adhanPer && r.adhanPer[p]) || r.adhanMode || 'sound'; if (mode !== 'adhan') continue;
+    const at = t[p] instanceof Date ? t[p].getTime() : 0; if (at && now >= at && now - at < 3 * 60000 && !wasPlayed(p)) fireAdhan(p === 'fajr' ? (r.fajrVoice || 'fajr-ramadan') : (r.adhanVoice || 'madinah'), p); }
+} catch {} }, 15000);
+function checkAdhanHash(tries = 0) { const m = location.hash.match(/[?&]adhan=(\w+)/); if (!m) return; if (!state.user) { if (tries < 40) setTimeout(() => checkAdhanHash(tries + 1), 500); return; } const r = state.user.settings.reminders || {};
+  markPlayed(m[1]); playAdhan(m[1] === 'fajr' ? (r.fajrVoice || 'fajr-ramadan') : (r.adhanVoice || 'madinah'), { prayer: m[1] }); history.replaceState(null, '', location.hash.replace(/[?&]adhan=\w+/, '')); }
 
 // Adhan & notification sound settings card (used on Prayer times + Settings)
 export async function adhanSettingsHTML() {
