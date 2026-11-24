@@ -2314,3 +2314,11 @@ body:has(#fypStories .sty-tray) .fyp-session{top:calc(env(safe-area-inset-top) +
 .ist-hero{margin-top:6px;padding:22px 22px 18px}.ist-hero h2{line-height:1.15;position:relative;z-index:1;text-shadow:0 1px 0 rgba(255,255,255,.35)}
 .ist-hero::after{opacity:.6}.ist-step b{word-break:break-word}
 .ist-gem em,.ist-gem p{font-variant-ligatures:common-ligatures}
+/* camera: [hidden] must win over display rules (filter bar toggle) */
+.create-screen [hidden]{display:none!important}
+.cam-fx{animation:camfx .18s ease-out}@keyframes camfx{from{opacity:0;transform:translateY(8px)}}
+/* camera: permission message sits in the upper half, never under the filter row; even side-rail spacing */
+.cam-msg{top:calc(env(safe-area-inset-top) + 90px)!important;bottom:auto!important;transform:none!important;left:24px!important;right:72px!important;z-index:4}
+.cam-retry{position:relative;z-index:5;background:#fff!important;color:#000!important;font-weight:700}
+.cam-side{gap:14px!important;justify-content:flex-start}
+.cam-fx{position:relative;z-index:3;padding-right:64px!important;-webkit-mask-image:linear-gradient(90deg,#000 85%,transparent);mask-image:linear-gradient(90deg,#000 85%,transparent)}

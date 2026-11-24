@@ -140,7 +140,7 @@ async function router() {
   }
   go('/');
 }
-window.addEventListener('hashchange', () => router());
+window.addEventListener('hashchange', e => { try { const o = new URL(e.oldURL).hash; if (o) sessionStorage.setItem('shukr.prevHash', o); } catch {} router(); });
 import('./i18n.js').then(m => m.initI18n()).catch(() => {});
 
 function started() {

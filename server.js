@@ -10,7 +10,7 @@ const { validCoordinates, zonedTime } = require('./public/js/prayer-location');
 const PORT = process.env.PORT || 3000;
 const AI_BASE = (process.env.ROAR_BASE_URL || '').replace(/\/$/, '');
 const AI_KEY = process.env.ROAR_API_KEY || '';
-const CHAT_MODEL = process.env.CHAT_MODEL || 'claude-sonnet-5-5';
+const CHAT_MODEL = process.env.CHAT_MODEL || 'claude-haiku-5-5'; // Sonnet only via env (cost: ~10x Haiku)
 const FAST_MODEL = process.env.FAST_MODEL || 'claude-haiku-5-5';
 const EMBED_MODEL = process.env.EMBED_MODEL || 'text-embedding-3-small';
 
@@ -312,8 +312,17 @@ async function prayerTimesFor(s, day) {
 }
 
 // ---------- AI helpers ----------
+// Dev/test spend guard: when AI_DEV_MAX_CALLS is set (local .env.local only), cap model calls per server run
+// so test loops can't burn credits. Unset in production.
+const AI_DEV_MAX = +process.env.AI_DEV_MAX_CALLS || 0; let aiDevCalls = 0;
+function aiGuard() {
+  if (!AI_DEV_MAX) return;
+  if (++aiDevCalls > AI_DEV_MAX) throw new Error(`AI dev limit reached (${AI_DEV_MAX} calls this run) — restart the server or raise AI_DEV_MAX_CALLS`);
+  if (aiDevCalls % 10 === 0) console.warn(`[ai-guard] ${aiDevCalls}/${AI_DEV_MAX} AI calls used this run`);
+}
 async function aiChat(messages, { model = FAST_MODEL, json = false, max_tokens = 1200, temperature = 0.4 } = {}) {
   if (!AI_KEY) throw new Error('AI is not configured');
+  if (!arguments[1]?._retried) aiGuard();
   const body = { model, messages, max_tokens, temperature };
   if (json) body.response_format = { type: 'json_object' };
   const r = await fetch(AI_BASE + '/chat/completions', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + AI_KEY }, body: JSON.stringify(body) });
@@ -740,7 +749,7 @@ app.get('/api/export', auth, wrap(async (req, res) => {
 
 
 // ---------- Modules ----------
-const ctx = { app, q, auth, wrap, AI_BASE, AI_KEY, FAST_MODEL, CHAT_MODEL, aiChat, parseJson, embed, embedFast, cosine, remember, recall, extractMemories,
+const ctx = { app, q, auth, wrap, aiGuard, AI_BASE, AI_KEY, FAST_MODEL, CHAT_MODEL, aiChat, parseJson, embed, embedFast, cosine, remember, recall, extractMemories,
   computeStats, statsBrief, localParts, todayFor, addDays, defaultSettings, prayerTimes, prayerTimesFor, dbReady: () => dbReady, hashPass, newSession, checkPass, tokHash, sec };
 ctx.s3 = s3;
 require('./lib/reminders')(ctx);

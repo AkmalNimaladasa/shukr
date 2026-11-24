@@ -67,7 +67,9 @@ export async function viewCreate(query) {
   const stopStream = () => { if (stream) stream.getTracks().forEach(t => t.stop()); stream = null; };
   const cleanup = () => { alive = false; unpark(); stopStream(); clearInterval(recTimer); clearTimeout(holdTimer); items.forEach(i => URL.revokeObjectURL(i.meta.url)); host.remove(); document.documentElement.classList.remove('creating'); if (!prev) document.documentElement.classList.remove('immersive'); window.removeEventListener('hashchange', cleanup); };
   window.addEventListener('hashchange', cleanup); onCleanup(cleanup);
-  const close = () => { if (history.length > 1) history.back(); else go('/fyp'); };
+  // Close always leaves the camera: go back only if the previous page was inside the app and not /create, else open the feed.
+  const entryHash = sessionStorage.getItem('shukr.prevHash') || '';
+  const close = () => { const before = location.hash; if (entryHash && !/^#\/create/.test(entryHash) && history.length > 1) { history.back(); setTimeout(() => { if (location.hash === before) go('/fyp'); }, 350); } else go('/fyp'); };
 
   function cameraUI() {
     host.innerHTML = `<div class="cam">
