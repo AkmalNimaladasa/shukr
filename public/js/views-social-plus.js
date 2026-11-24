@@ -11,9 +11,13 @@ async function uploadFile(f) { const r = await fetch('/api/social/media', { meth
 export async function storiesTrayHTML() {
   let d; try { d = await api('/stories/tray'); } catch { return ''; }
   const me = state.user || {};
-  const mine = d.mine ? `<button class="st-item" data-story-user="${escAttr(d.mine.username)}"><span class="st-ring ${d.mine.allSeen ? 'seen' : ''}">${av(d.mine)}</span><small>Your story</small></button>`
-    : `<a class="st-item" href="#/create?type=story"><span class="st-ring add">${av({ name: me.name })}<i class="st-plus">+</i></span><small>Your story</small></a>`;
-  return `<div class="st-tray" role="list">${mine}${d.tray.map(g => `<button class="st-item" data-story-user="${escAttr(g.username)}"><span class="st-ring ${g.allSeen ? 'seen' : ''}">${av(g)}</span><small>${esc(g.username || g.name)}</small></button>`).join('')}</div>`;
+  const key = g => g.username || (g.userId ? 'id:' + g.userId : '');
+  const item = (g, label, extra = '') => `<button class="sty-item" data-story-user="${escAttr(key(g))}" aria-label="${escAttr(label)} story"><span class="sty-ring ${g.allSeen ? 'seen' : ''}"><span class="sty-gap">${av(g)}</span></span>${extra}<small>${esc(label)}</small></button>`;
+  const mine = d.mine ? item(d.mine, 'Your story', `<a class="sty-plus" href="#/create?type=story" aria-label="Add to your story" onclick="event.stopPropagation()">+</a>`)
+    : `<a class="sty-item" href="#/create?type=story" aria-label="Add a story"><span class="sty-ring none"><span class="sty-gap">${av({ name: me.name, avatar: me.avatar })}</span></span><i class="sty-plus">+</i><small>Your story</small></a>`;
+  // unseen first, then seen (Instagram order)
+  const tray = [...d.tray].sort((a, b) => (a.allSeen ? 1 : 0) - (b.allSeen ? 1 : 0));
+  return `<div class="sty-tray" role="list">${mine}${tray.filter(g => key(g)).map(g => item(g, g.username || g.name)).join('')}</div>`;
 }
 export function bindStoryTray(root, onDone) {
   const users = $$('[data-story-user]', root).map(b => b.dataset.storyUser);
@@ -35,12 +39,12 @@ export async function openStories(usernames, startIdx = 0, onDone) {
     cancelAnimationFrame(raf); const s = g.stories[si], m = s.media || {}, mine = g.userId === state.user?.id;
     const src = m.src || m.slides?.[0]?.src, isVid = s.format === 'reel' || /\.(mp4|webm|mov)$/.test(src || '');
     ov.innerHTML = `<div class="sv-card"><div class="sv-bars">${g.stories.map((_, k) => `<i class="${k < si ? 'done' : k === si ? 'on' : ''}"><b></b></i>`).join('')}</div>
-      <div class="sv-top">${av(g)}<b>${esc(g.username || g.name)}</b><small>${ago(s.createdAt)}</small><span class="grow"></span>${isVid ? `<button class="sv-btn" data-sv="mute" aria-label="Sound">${I.volume || '🔊'}</button>` : ''}<button class="sv-btn" data-sv="close" aria-label="Close">${I.x}</button></div>
+      <div class="sv-top">${av(g)}<b>${esc(g.username || g.name)}</b><small>${ago(s.createdAt)}</small><span class="grow"></span>${isVid ? `<button class="sv-btn" data-sv="mute" aria-label="Sound">${I.volume || I.speaker}</button>` : ''}<button class="sv-btn" data-sv="close" aria-label="Close">${I.x}</button></div>
       <div class="sv-media">${isVid ? `<video src="${escAttr(src)}" playsinline autoplay ${state.svMuted ? 'muted' : ''}></video>` : `<img src="${escAttr(src)}" alt="">`}</div>
       ${s.caption && s.caption !== 'New post' ? `<div class="sv-cap">${esc(s.caption)}</div>` : ''}
       <div class="sv-tap l"></div><div class="sv-tap r"></div>
       <div class="sv-foot">${mine ? `<button class="sv-viewers" data-sv="viewers">${I.eye || '👁'} Viewers</button><button class="sv-btn" data-sv="del" aria-label="Delete story">${I.trash}</button>`
-        : `<input class="sv-reply" placeholder="Reply to ${escAttr(g.username || '')}…" maxlength="500"><div class="sv-rx">${['❤️', '🤲', '🔥'].map(e => `<button data-rx="${e}">${e}</button>`).join('')}</div><button class="sv-btn" data-sv="send" aria-label="Share">${I.send}</button>`}</div></div>`;
+        : `<input class="sv-reply" placeholder="Reply to ${escAttr(g.username || g.name || 'story')}…" maxlength="500"><div class="sv-rx">${[['❤️', I.heart], ['🤲', I.hands || I.sparkle || I.star], ['🔥', I.flame]].map(([e, ic]) => `<button data-rx="${e}" aria-label="React ${e}" class="sv-rxb">${ic}</button>`).join('')}</div><button class="sv-btn" data-sv="send" aria-label="Share">${I.send}</button>`}</div></div>`;
     api(`/stories/${encodeURIComponent(s.id)}/seen`, { body: {} }).catch(() => {}); s.seen = true;
     elapsed = 0; t0 = performance.now(); paused = false;
     const v = $('video', ov); if (v) { dur = 15000; v.onloadedmetadata = () => { dur = Math.min(60000, (v.duration || 15) * 1000); }; v.play().catch(() => { v.muted = true; state.svMuted = true; v.play().catch(() => {}); }); }
@@ -72,7 +76,7 @@ export async function openStories(usernames, startIdx = 0, onDone) {
     const inp = $('.sv-reply', ov); if (inp) { inp.onfocus = () => pause(true); inp.onblur = () => { if (!inp.value) pause(false); };
       inp.onkeydown = async e => { if (e.key !== 'Enter' || !inp.value.trim()) return; const text = inp.value.trim(); inp.value = ''; inp.blur();
         try { await api('/share/dm', { body: { to: [g.userId], postId: s.id, text } }); toast('Reply sent'); } catch (er) { toast(er.message); } pause(false); }; }
-    $$('[data-rx]', ov).forEach(b => b.onclick = async e => { e.stopPropagation(); b.classList.add('pop'); await api(`/stories/${encodeURIComponent(s.id)}/seen`, { body: { reaction: b.dataset.rx } }).catch(() => {}); toast('Sent ' + b.dataset.rx); });
+    $$('[data-rx]', ov).forEach(b => b.onclick = async e => { e.stopPropagation(); b.classList.add('pop'); await api(`/stories/${encodeURIComponent(s.id)}/seen`, { body: { reaction: b.dataset.rx } }).catch(() => {}); b.classList.add('on'); toast('Reaction sent'); });
   }
   const esc_ = e => { if (e.key === 'Escape') close(); if (e.key === 'ArrowRight') next(); if (e.key === 'ArrowLeft') prev(); };
   document.addEventListener('keydown', esc_); const obs = new MutationObserver(() => { if (!document.body.contains(ov)) { document.removeEventListener('keydown', esc_); obs.disconnect(); } }); obs.observe(document.body, { childList: true });
