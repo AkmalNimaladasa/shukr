@@ -5,7 +5,7 @@ const MODES = [['coach', 'Coach', 'sparkle', 'Notices your patterns and helps yo
   ['fiqh', 'Fatwa research', 'scale', 'Finds published fatwas — never its own'], ['istikhara', 'Decision', 'compass', 'Think a decision through Islamically']];
 const STARTERS = [['sparkle', 'What patterns do you see in my gratitude lately?', 'coach'], ['cap', 'Teach me something new about the Prophet ﷺ', 'teach'], ['scale', 'Is it permissible to pray in a moving vehicle?', 'fiqh'],
   ['heart', 'I’m feeling anxious today — help me', 'coach'], ['globe', 'What’s the latest news affecting Muslims today?', 'coach'], ['moon', 'Guide me through tonight’s muhasabah', 'reflect']];
-const TOOL_LABEL = { web_search: 'Searching the web', save_memory: 'Saved to memory', search_memory: 'Searching your history', forget_memory: 'Forgetting', quran_lookup: 'Looking up the Quran', hadith_search: 'Searching hadith', add_blessing: 'Added to Blessings', get_stats: 'Checking your progress' };
+const TOOL_LABEL = { web_search: 'Searching the web', save_memory: 'Saved to memory', search_memory: 'Searching your history', forget_memory: 'Forgetting', quran_lookup: 'Looking up the Quran', hadith_search: 'Searching hadith', app_data: 'Checking your Shukr data', open_page: 'Finding the right page', add_blessing: 'Added to Blessings', get_stats: 'Checking your progress' };
 
 let ctl = null; // AbortController for current stream
 export async function viewChat(id) {
@@ -32,7 +32,7 @@ export async function viewChat(id) {
     const tools = (m.meta?.tools || []).map(t => `<span class="toolpill">${t.name === 'web_search' ? I.globe : t.name.includes('memory') ? I.layers : t.name === 'quran_lookup' ? I.quran : t.name === 'hadith_search' ? I.scroll : I.sparkle}${esc(TOOL_LABEL[t.name] || t.name)}${t.args?.query ? ': ' + esc(String(t.args.query).slice(0, 40)) : t.args?.ref ? ' ' + esc(t.args.ref) : ''}</span>`).join('');
     const src = (m.meta?.sources || []).map(s => { let h = ''; try { h = new URL(s.url).hostname.replace('www.', ''); } catch {} return `<a class="source" href="${escAttr(s.url)}" target="_blank" rel="noopener"><img src="https://www.google.com/s2/favicons?domain=${esc(h)}&sz=32" alt="">${esc(s.title || h)}</a>`; }).join('');
     return `<div class="msg assistant" data-i="${i}">${tools ? `<div>${tools}</div>` : ''}<div class="md">${m.content ? md(m.content) : (m.pending ? `<span class="thinking"><span class="star-spin">${I.khatam}</span>${esc(m.status || 'Thinking…')}</span>` : '')}</div>
-      ${src ? `<div class="sources">${src}</div>` : ''}${m.error ? `<div class="small" style="color:var(--danger);margin-top:6px;font-family:var(--sans)">${esc(m.error)}</div>` : ''}
+      ${(m.meta?.buttons || []).length ? `<div class="al-btns">${m.meta.buttons.map(b => `<a class="al-go" href="#${escAttr(b.path)}">${esc(b.label)} ›</a>`).join('')}</div>` : ''}      ${src ? `<div class="sources">${src}</div>` : ''}${m.error ? `<div class="small" style="color:var(--danger);margin-top:6px;font-family:var(--sans)">${esc(m.error)}</div>` : ''}
       ${!m.pending ? `<div class="msg-actions"><button data-copy="${i}" aria-label="Copy">${I.copy}</button><button data-speak="${i}" aria-label="Read aloud">${I.speaker}</button>${i === msgs.length - 1 ? `<button data-regen="${i}" aria-label="Regenerate">${I.retry}</button>` : ''}<button data-share="${i}" aria-label="Share">${I.share}</button></div>` : ''}</div>`;
   }
   function render() {
@@ -90,6 +90,7 @@ export async function viewChat(id) {
         else if (ev.type === 'delta') { am.content += ev.text; am.status = null; o.onDelta && o.onDelta(ev.text); }
         else if (ev.type === 'tool') { am.meta.tools.push({ name: ev.name, args: ev.args }); am.status = (TOOL_LABEL[ev.name] || ev.name) + '…'; o.onTool && o.onTool(ev.name); }
         else if (ev.type === 'sources') am.meta.sources = ev.sources;
+        else if (ev.type === 'button') (am.meta.buttons ||= []).push({ path: ev.path, label: ev.label });
         else if (ev.type === 'crisis') showCrisisCard(ev);
         else if (ev.type === 'title') { $('#topbar .title').textContent = ev.title; loadChatList(); }
         else if (ev.type === 'error') am.error = ev.error;
@@ -145,7 +146,9 @@ export async function viewChat(id) {
     // Speech detection: rolling noise floor (median of quiet frames), "spoke" after ~150 ms above it, end after 1.3 s of silence.
     const lang = (state.user.settings.lang || navigator.language || 'en').slice(0, 2);
     // Instant path: the phone's own speech recogniser (Android Chrome) streams words live — no upload, no wait.
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition; let srObj = null, srFail = !SR || LS.get('srOff', false);
+    // Android's built-in recogniser plays a system "beep" every time it starts/stops (can't be silenced from a web page), so voice mode
+    // uses our own silent recorder + server transcription instead.
+    const SR = null; let srObj = null, srFail = true;
     const listenSR = () => new Promise(resolve => {
       const r = new SR(); srObj = r; r.lang = state.user.settings.lang === 'ar' ? 'ar-SA' : (navigator.language || 'en-US'); r.interimResults = true; r.continuous = false; r.maxAlternatives = 1;
       let finalText = '', got = false, endT = null; const done = t => { if (got) return; got = true; clearTimeout(endT); try { r.stop(); } catch {} srObj = null; resolve(t); };
@@ -154,7 +157,7 @@ export async function viewChat(id) {
         clearTimeout(endT); if (finalText && !interim) done(finalText.trim()); else endT = setTimeout(() => done(live), 900); };
       r.onerror = ev => { if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed' || ev.error === 'network') { srFail = true; } done(got ? finalText : null); };
       r.onend = () => done(finalText.trim() || null);
-      try { r.start(); setState('listening', 'Listening… speak now'); vibrate(12); $('#vmic', ov).innerHTML = I.stop; } catch { srFail = true; done(null); } });
+      try { r.start(); setState('listening', 'Listening… speak now'); $('#vmic', ov).innerHTML = I.stop; } catch { srFail = true; done(null); } });
     const listen = async () => {
       if (!alive) return; stopSpeech();
       if (!srFail) { vt.textContent = ''; const t = await listenSR(); $('#vmic', ov).innerHTML = I.mic; orb.style.transform = ''; if (!alive) return;
@@ -163,9 +166,9 @@ export async function viewChat(id) {
         vrec = await recordAudio({ voice: true, maxMs: 60000, onLevel: lv => { frames++; orb.style.transform = `scale(${1 + Math.min(0.3, lv * 3)})`;
           if (lv < floor * 1.6) floor = floor * 0.95 + lv * 0.05; const th = Math.max(0.02, floor * 2.4);
           if (lv > th) { if (++loud > 5) { spoke = true; clearTimeout(silenceT); silenceT = null; if (vs.textContent !== 'Listening…') setState('listening', 'Listening…'); } }
-          else { loud = Math.max(0, loud - 1); if (spoke && !silenceT) silenceT = setTimeout(() => finish(), 750); }
+          else { loud = Math.max(0, loud - 1); if (spoke && !silenceT) silenceT = setTimeout(() => finish(), 550); }
           if (!spoke && frames > 60 * 12) finish(); } });
-        setState('listening', 'Listening… speak now'); vibrate(12); $('#vmic', ov).innerHTML = I.stop; }
+        setState('listening', 'Listening… speak now'); $('#vmic', ov).innerHTML = I.stop; }
       catch (e) { setState('', e.message || 'Microphone permission denied'); }
     };
     // Alim's voice: sentence-chunked TTS so he starts speaking within ~1 s, one reusable <audio> (autoplay-safe on iOS/Android).
@@ -173,11 +176,11 @@ export async function viewChat(id) {
     const stopSpeech = () => { speechId++; queue = []; speaking = false; try { player.pause(); } catch {} };
     const chunksOf = t => { const s = t.replace(/\[(.*?)\]\([^)]*\)/g, '$1').replace(/https?:\S+/g, '').replace(/[*#_`>|~]/g, '').replace(/\s+/g, ' ').trim().match(/[^.!?؟…]+[.!?؟…]*\s*/g) || [];
       const out = []; let cur = ''; for (const x of s) { if ((cur + x).length > 220 && cur) { out.push(cur.trim()); cur = ''; } cur += x; if (!out.length && cur.length > 60) { out.push(cur.trim()); cur = ''; } } if (cur.trim()) out.push(cur.trim()); return out; };
-    const ttsUrl = text => fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, voice: state.user.settings.alimVoice || 'onyx' }) }).then(r => { if (!r.ok) throw new Error('Voice unavailable'); return r.blob(); }).then(b => URL.createObjectURL(b));
+    const ttsUrl = (text, fast) => fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, fast: !!fast, voice: state.user.settings.alimVoice || 'onyx' }) }).then(r => { if (!r.ok) throw new Error('Voice unavailable'); return r.blob(); }).then(b => URL.createObjectURL(b));
     // Streaming speech: sentences are voiced the moment they arrive from Alim, played back in order.
     const makeSpeaker = () => { const id = ++speechId; const urls = [], parts = []; let i = 0, ended = false, playing = false, buf = '';
       const clean = t => t.replace(/\[(.*?)\]\([^)]*\)/g, '$1').replace(/https?:\S+/g, '').replace(/[*#_`>|~]/g, '').replace(/\s+/g, ' ').trim();
-      const push = t => { t = clean(t); if (t.length < 2) return; parts.push(t); urls.push(ttsUrl(t)); if (!playing) next(); };
+      const push = t => { t = clean(t); if (t.length < 2) return; parts.push(t); urls.push(parts.length === 1 ? Promise.resolve('/api/tts/stream?' + new URLSearchParams({ text: t, voice: state.user.settings.alimVoice || 'onyx' })) : ttsUrl(t, true)); if (!playing) next(); };
       const next = async () => { if (id !== speechId || !alive) return;
         if (i >= parts.length) { playing = false; if (ended) { speaking = false; if (auto) listen(); else setState('', 'Tap the mic to reply'); } return; }
         playing = true; let u; try { u = await urls[i]; } catch { i++; return next(); } if (id !== speechId) return;
@@ -187,17 +190,16 @@ export async function viewChat(id) {
       player.onended = next; player.onerror = next;
       return { say(t) { push(t); }, feed(t) { buf += t; let m; // first chunk early (comma/sentence after ~40 chars), then full sentences
           while ((m = buf.match(parts.length ? /^[\s\S]{20,}?[.!?؟…](\s|$)/ : /^[\s\S]{12,}?([.!?؟…]|[,،;:—–](?=\s))(\s|$)/))) { push(m[0]); buf = buf.slice(m[0].length); }
-          if (!parts.length && buf.length > 55) { const k = buf.lastIndexOf(' ', 50); if (k > 15) { push(buf.slice(0, k)); buf = buf.slice(k); } } },
+          if (!parts.length && buf.length > 40) { const k = buf.lastIndexOf(' ', 36); if (k > 12) { push(buf.slice(0, k)); buf = buf.slice(k); } } },
         end() { if (buf.trim()) push(buf); buf = ''; ended = true; if (!playing) next(); } }; };
     // Instant acknowledgement: tiny cached clips play the moment you stop talking, so Alim never feels silent.
-    const ACKS = ['Mm, okay.', 'Alright.', 'Hmm, let me think.', 'Okay.'], ackUrls = {};
-    ACKS.forEach(a => ttsUrl(a).then(u => { ackUrls[a] = u; }).catch(() => {}));
-    const ack = () => { const ready = ACKS.filter(a => ackUrls[a]); if (!ready.length) return; player.src = ackUrls[ready[Math.floor(Math.random() * ready.length)]]; player.play().catch(() => {}); };
+    // No spoken fillers ("let me think" etc.): Alim goes straight into the answer.
+    const ack = () => {};
     let lastReply = '';
     const finish = async () => {
       if (!vrec) return; clearTimeout(silenceT); silenceT = null; const r = vrec; vrec = null; $('#vmic', ov).innerHTML = I.mic; orb.style.transform = '';
       try { const blob = await r.stop(); if (blob.size < 1500) { setState('', 'I didn’t hear anything — tap the mic and speak'); return; }
-        setState('thinking', 'Understanding…'); ack(); const text = (await transcribe(blob, lang, lastReply.slice(-250))).trim();
+        setState('thinking', 'Understanding…'); ack(); const text = (await transcribe(blob, lang, lastReply.slice(-250), true)).trim();
         await handleText(text);
       } catch (e) { setState('', e.message || 'Something went wrong'); }
     };
@@ -208,7 +210,7 @@ export async function viewChat(id) {
         if (!text) { setState('', 'I didn’t catch that — tap the mic and try again'); return; }
         vt.textContent = '“' + text + '”'; ci.value = text; setState('thinking', 'Thinking…');
         const sp = makeSpeaker(); let shown = '';
-        let filler = false; const am = await doSend({ voice: true, onTool: n => { if (filler) return; filler = true; setState('thinking', n === 'web_search' ? 'Searching…' : 'Checking sources…'); sp.say(['Let me check that for you.', 'One moment, let me look that up.', 'Let me find the authentic source.'][Math.floor(Math.random() * 3)]); }, onDelta: t => { sp.feed(t); shown += t; vt.textContent = shown.replace(/[*#_`>]/g, '').slice(-400); } }); if (!alive) return;
+        let filler = false; const am = await doSend({ voice: true, onTool: n => { if (filler) return; filler = true; setState('thinking', n === 'web_search' ? 'Searching…' : 'Checking sources…');  }, onDelta: t => { sp.feed(t); shown += t; vt.textContent = shown.replace(/[*#_`>]/g, '').slice(-400); } }); if (!alive) return;
         const reply = (am?.content || '').trim(); if (!reply) { stopSpeech(); setState('', am?.error || 'No reply — tap the mic to try again'); return; }
         lastReply = reply; sp.end();
       } catch (e) { setState('', e.message || 'Something went wrong'); }

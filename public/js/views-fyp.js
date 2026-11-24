@@ -4,6 +4,7 @@ import { deckIndex, sessionProgress, safeSource } from './fyp-utils.js';
 import { mountSocialTabbar } from './views-social-hub.js';
 import { trackFeedEngagement } from './fyp-engagement.js';
 import { heartBurst, haptic, bumpStreak, streakBadge, onWatched } from './engage.js';
+import { feedHeader, onFeedWatch, socialProof } from './features/engage.js';
 import { storiesTrayHTML, bindStoryTray, sendToSheet, openStories, peopleSearchHTML, bindPeopleSearch, notifBadge } from './views-social-plus.js';
 
 const topicIcons = { quran:'quran', sunnah:'scroll', character:'heart', wellbeing:'sun', learning:'brain', world:'compass' };
@@ -49,6 +50,8 @@ export async function viewFYP(query) {
   if (query?.get('saved') === '1') { go('/profile?tab=saved'); return; }
   let alive = true, request = 0, tab = query?.get('saved') === '1' ? 'saved' : query?.get('tab') === 'following' ? 'following' : 'for-you', topic = 'all', offset = 0, items = [], topics = [], hasMore = false, nextOffset = 0, index = 0;
   let speech = null, scroller = null, observer = null, format = ['reel','carousel','image'].includes(query?.get('format'))?query.get('format'):'all', scrollTick = null, stopTracking = null, post = query?.get('post') || '';
+  let listIds=null;const listKey=query?.get('list');if(listKey&&post){try{listIds=JSON.parse(sessionStorage.getItem('shukr.pf.'+listKey)||'null');}catch{}if(!Array.isArray(listIds)||!listIds.length)listIds=null;}
+  const startPost=post;
   // Sound: TikTok plays with sound once the user has interacted; remember their mute choice.
   let soundOn = localStorage.getItem('shukr.sound') !== '0';
   // The icon always reflects what you actually hear (a browser may force a video muted until you tap).
@@ -109,7 +112,7 @@ export async function viewFYP(query) {
   }
   function article(x,n) {
     const m=x.media||{}, slides=m.slides||[];
-    const local=s=>typeof s==='string' && (/^\/media\/(fyp|house)\/[a-zA-Z0-9_./-]+$/.test(s) || /^\/ugc\/[a-f0-9-]{36}\.[a-z0-9]{3,4}$/.test(s)) && !s.includes('..') ? escAttr(s) : '';
+    const local=s=>typeof s==='string' && (/^\/media\/(fyp|house|jannah)\/[a-zA-Z0-9_./-]+$/.test(s) || /^\/ugc\/[a-f0-9-]{36}\.[a-z0-9]{3,4}$/.test(s)) && !s.includes('..') ? escAttr(s) : '';
     const image=(s,alt)=>`<div class="fyp-frame"><img class="fyp-backdrop" src="${local(s)}" alt="" aria-hidden="true" loading="lazy" decoding="async"><img class="fyp-art${m.ugc?' ugc':''}" src="${local(s)}" alt="${escAttr(alt||x.title)}" loading="${n===0?'eager':'lazy'}" decoding="async"><div class="fyp-media-error" hidden><p>Couldn’t load this image.</p><button data-media-retry>Retry</button></div></div>`;
     const silent=!!x.silent;
     // Every reel fills the 9:16 screen (object-fit: cover), like TikTok.
@@ -142,9 +145,10 @@ export async function viewFYP(query) {
   function draw() {
     disposeMedia();
     const filtered=topic!=='all'||format!=='all';
-    p.innerHTML = `<header class="fyp-toolbar"><button class="fyp-top-btn" data-open-drawer aria-label="Open menu">${I.menu}</button><div class="fyp-tabs" role="group" aria-label="Feed selection"><button data-tab="following" class="${tab==='following'?'on':''}">Following</button><button data-tab="for-you" class="${tab==='for-you'?'on':''}">For You</button>${tab==='saved'?'<button data-tab="saved" class="on">Saved</button>':''}</div><button class="fyp-top-btn ${filtered?'on':''}" id="fypFilter" aria-label="Filter topics and formats">${I.sliders}</button><a class="fyp-top-btn" href="#/explore" aria-label="Search">${I.search}</a><a class="fyp-top-btn nt-bell" href="#/notifications" aria-label="Notifications">${I.heart}</a></header>${(bumpStreak(),'')}<div class="eg-streak-wrap">${streakBadge()}</div><div class="fyp-stories" id="fypStories"></div><div class="fyp-session" id="fypSession" hidden></div>
+    const au0=listIds&&items[0]?.author;
+    p.innerHTML = (listIds?`<header class="fyp-listbar"><button class="fyp-top-btn" id="fypListBack" aria-label="Back">${I.back}</button><b class="fyp-listtitle">${esc(au0?.username?"@"+au0.username:"Posts")}</b></header>`:'')+`<header class="fyp-toolbar"><button class="fyp-top-btn" data-open-drawer aria-label="Open menu">${I.menu}</button><div class="fyp-tabs" role="group" aria-label="Feed selection"><button data-tab="following" class="${tab==='following'?'on':''}">Following</button><button data-tab="for-you" class="${tab==='for-you'?'on':''}">For You</button>${tab==='saved'?'<button data-tab="saved" class="on">Saved</button>':''}</div><button class="fyp-top-btn ${filtered?'on':''}" id="fypFilter" aria-label="Filter topics and formats">${I.sliders}</button><a class="fyp-top-btn" href="#/explore" aria-label="Search">${I.search}</a><a class="fyp-top-btn nt-bell" href="#/notifications" aria-label="Notifications">${I.heart}</a></header><div class="eg-streak-wrap" id="egHead"></div><div class="fyp-stories" id="fypStories"></div><div class="fyp-session" id="fypSession" hidden></div>
       <div class="fyp-scroller" id="fypDeck" tabindex="0" aria-label="Swipeable educational feed">${items.map(article).join('')}
-      <section class="fyp-card fyp-ending" aria-label="Session complete"><div class="fyp-ending-inner"><div class="fyp-overline">A GOOD PLACE TO PAUSE</div><h2>${items.length ? 'You’re all caught up.' : tab==='following'?'Follow creators to\nfill this feed.':tab==='saved'?'Nothing saved yet.':'A fresh perspective awaits.'}</h2><p id="fypLearned"></p><p>${items.length?'Keep scrolling for more, or take one idea into your day.':tab==='following'?'Tap the + on a creator’s picture to follow them. Their new posts land here first.':tab==='saved'?'Tap the bookmark on any post to keep it here.':'Try another topic.'}</p>${tab==='following'&&!items.length?'<button class="btn accent" data-go="/explore">Find creators</button>':''}<button class="btn ${tab==='following'&&!items.length?'ghost':'accent'}" id="fypContinue">${hasMore?'Load more':'Back to For You'}</button></div></section></div>`;
+      ${items.length&&tab!=='saved'&&!listIds?`<section class="fyp-card fyp-ending fyp-more" id="fypMore" aria-label="Loading more"><div class="fyp-ending-inner"><div class="eg-spin"></div><p>Loading more for you…</p></div></section>`:listIds?`<section class="fyp-card fyp-ending" aria-label="End of posts"><div class="fyp-ending-inner"><h2>You’ve seen all of ${esc(au0?.username?'@'+au0.username:'these')} posts</h2><button class="btn accent" id="fypListBack2">Back to profile</button></div></section>`:`<section class="fyp-card fyp-ending" aria-label="Nothing here yet"><div class="fyp-ending-inner"><h2>${tab==='following'?'Follow creators to\nfill this feed.':tab==='saved'?'Nothing saved yet.':'A fresh perspective awaits.'}</h2><p id="fypLearned"></p><p>${tab==='following'?'Tap the + on a creator’s picture to follow them. Their new posts land here first.':tab==='saved'?'Tap the bookmark on any post to keep it here.':'Try another topic.'}</p>${tab==='following'?'<button class="btn accent" data-go="/explore">Find creators</button>':''}<button class="btn ${tab==='following'?'ghost':'accent'}" id="fypContinue">Back to For You</button></div></section>`}</div><div class="eg-ptr" id="egPtr">${I.retry}</div>`;
     scroller = $('#fypDeck',p);index=0; progress();bindGo(p);
     $('[data-open-drawer]',p).onclick=openDrawer;
     $$('[data-tab]',p).forEach(b=>b.onclick=()=>{post='';tab=b.dataset.tab;offset=0;load();});
@@ -153,7 +157,13 @@ export async function viewFYP(query) {
       $$('[data-topic]',sh).forEach(b=>b.onclick=()=>{close();post='';topic=b.dataset.topic;offset=0;load();});
       $$('[data-format]',sh).forEach(b=>b.onclick=()=>{close();post='';format=b.dataset.format;offset=0;load();});
     });};
-    $('#fypContinue',p).onclick=()=>{post='';if(hasMore)offset=nextOffset;else {offset=0;topic='all';format='all';tab='for-you';}load();};
+    const cont=$('#fypContinue',p);if(cont)cont.onclick=()=>{post='';offset=0;topic='all';format='all';tab='for-you';load();};
+    // Endless feed: reaching the end loads the next page; when the catalogue runs out it starts a fresh (re-ranked) round.
+    const more=$('#fypMore',p);if(more&&window.IntersectionObserver){const mo=new IntersectionObserver(es=>{if(es.some(e=>e.isIntersecting&&e.intersectionRatio>.5)){mo.disconnect();post='';offset=hasMore?nextOffset:0;load();}},{root:scroller,threshold:[.5,.8]});mo.observe(more);}
+    // Pull to refresh at the top of the feed.
+    {let y0=null,dy=0;const ptr=$('#egPtr',p);scroller.addEventListener('touchstart',e=>{y0=scroller.scrollTop<=0?e.touches[0].clientY:null;dy=0;},{passive:true});
+     scroller.addEventListener('touchmove',e=>{if(y0==null)return;dy=Math.max(0,e.touches[0].clientY-y0);if(ptr){ptr.style.transform=`translate(-50%,${Math.min(dy,110)-50}px) rotate(${dy*3}deg)`;ptr.style.opacity=Math.min(1,dy/80);}},{passive:true});
+     scroller.addEventListener('touchend',()=>{if(ptr){ptr.style.transform='';ptr.style.opacity=0;}if(y0!=null&&dy>90){post='';offset=0;load();}y0=null;},{passive:true});}
     scroller.onscroll=()=>{
       // Pause immediately, not after snap settles; scrolling is never completion.
       $$('video',p).forEach(v=>{const r=v.closest('article').getBoundingClientRect(),s=scroller.getBoundingClientRect();if(r.top<s.top-2||r.bottom>s.bottom+2)v.pause();});
@@ -164,6 +174,8 @@ export async function viewFYP(query) {
       const x=items.find(x=>String(x.id)===el.dataset.lesson);
       if(observer)observer.observe(el);
       $$('[data-action]',el).forEach(b=>b.onclick=e=>{e.stopPropagation();act(x,b,el);});
+      if(x.ugc&&(x.authorId===state.user?.id||x.author?.userId===state.user?.id||x.author?.me)){const lb=$('.fyp-like',el);if(lb){let lt,long=false;lb.addEventListener('pointerdown',()=>{long=false;lt=setTimeout(()=>{long=true;openLikers(x);},450);});['pointerup','pointerleave','pointercancel'].forEach(ev=>lb.addEventListener(ev,()=>clearTimeout(lt)));lb.addEventListener('click',e=>{if(long){e.stopImmediatePropagation();e.preventDefault();long=false;}},true);
+        const cnt=$('[data-count=likes]',lb);if(cnt){cnt.classList.add('lk-tap');cnt.addEventListener('click',e=>{e.stopPropagation();e.preventDefault();openLikers(x);},true);}}}
       $$('[data-profile],a.fyp-avatar',el).forEach(a=>a.addEventListener('click',e=>{e.stopPropagation();pauseMedia();},true));
       const cap=$('.fyp-caption',el);if(cap)cap.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();act(x,cap,el);}};
       $$('[data-sound]',el).forEach(b=>b.onclick=e=>{e.stopPropagation();const v=$('video',el);const audible=v&&!v.muted;setSound(!audible);if(v&&!audible){audioUnlocked=true;v.muted=false;if(v.paused&&!v.dataset.userPaused)v.play().catch(()=>{});}syncSoundUI();});
@@ -212,10 +224,13 @@ export async function viewFYP(query) {
       }
     });
     items.forEach(updateCounts);syncSoundUI();setTimeout(autoplay,150);
-    stopTracking=trackFeedEngagement(p,items,(id,counts)=>{const x=items.find(x=>String(x.id)===String(id));if(x){x.counts={...x.counts,...counts};updateCounts(x);}});
+    feedHeader($('#egHead',p));socialProof(p,items);
+    if(listIds){const back=()=>{if(history.length>1)history.back();else go('/');};[$('#fypListBack',p),$('#fypListBack2',p)].forEach(b=>b&&(b.onclick=back));p.classList.add('fyp-listmode');
+      const si=items.findIndex(x=>x.id===startPost);if(si>0){const card=$$('[data-lesson]',p)[si];if(card){scroller.scrollTop=card.offsetTop;}}}
+    stopTracking=trackFeedEngagement(p,items,(id,counts)=>{const x=items.find(x=>String(x.id)===String(id));if(x){if(!x._egSeen){x._egSeen=1;onFeedWatch($('#egHead',p));}x.counts={...x.counts,...counts};updateCounts(x);}});
   }
   function lessonSheet(x) {
-    if(x.ugc){const mine=x.authorId===state.user?.id||x.author?.userId===state.user?.id;return sheet(`<div class="fyp-overline">@${esc(x.author?.username||'member').toUpperCase()}</div>${x.hook?`<p class="fyp-ugc-full">${esc(x.hook).replace(/\n/g,'<br>')}</p>`:''}<div class="faint small">${esc(new Date(x.publishedAt||Date.now()).toLocaleDateString())} · #${esc(topicLabel(topics,x.topic))}</div><div style="height:10px"></div>${!mine?`<button class="opt" data-action="gift"><span class="e">${TT.gift}</span><div>Send a gift<div class="faint small">Support @${esc(x.author?.username||'creator')} with coins</div></div></button>`:''}${mine?`<button class="opt" data-action="delete">${I.trash||I.x}<div>Delete post</div></button>`:''}<button class="opt" data-action="less">${I.x}<div>Not interested<div class="faint small">See fewer posts like this</div></div></button><button class="opt" data-action="report">${I.flag}<div>Report</div></button>`,(sh,close)=>{const el=$$('[data-lesson]',p).find(n=>n.dataset.lesson===String(x.id));$$('[data-action]',sh).forEach(b=>b.onclick=()=>act(x,b,el,close));});}
+    if(x.ugc){const mine=x.authorId===state.user?.id||x.author?.userId===state.user?.id;return sheet(`<div class="fyp-overline">@${esc(x.author?.username||'member').toUpperCase()}</div>${x.hook?`<p class="fyp-ugc-full">${esc(x.hook).replace(/\n/g,'<br>')}</p>`:''}<div class="faint small">${esc(new Date(x.publishedAt||Date.now()).toLocaleDateString())} · #${esc(topicLabel(topics,x.topic))}</div><div style="height:10px"></div>${!mine?`<button class="opt" data-action="gift"><span class="e">${TT.gift}</span><div>Send a gift<div class="faint small">Support @${esc(x.author?.username||'creator')} with coins</div></div></button>`:''}${mine?`<button class="opt" data-action="likers">${TT.heart}<div>See who liked this<div class="faint small">${(x.counts?.likes||0).toLocaleString()} like${(x.counts?.likes||0)===1?'':'s'}</div></div></button>`:''}${mine?`<button class="opt" data-action="delete">${I.trash||I.x}<div>Delete post</div></button>`:''}<button class="opt" data-action="less">${I.x}<div>Not interested<div class="faint small">See fewer posts like this</div></div></button><button class="opt" data-action="report">${I.flag}<div>Report</div></button>`,(sh,close)=>{const el=$$('[data-lesson]',p).find(n=>n.dataset.lesson===String(x.id));$$('[data-action]',sh).forEach(b=>b.onclick=()=>act(x,b,el,close));});}
     sheet(`<div class="fyp-overline">@SHUKR · ${esc(topicLabel(topics,x.topic)).toUpperCase()}</div><h2 class="fyp-sheet-title">${esc(x.title)}</h2><p class="fyp-hook">${esc(x.hook)}</p><div class="fyp-body">${esc(x.body).replace(/\n/g,'<br>')}</div><div class="fyp-takeaway"><span>Try this today</span><p>${esc(x.takeaway)}</p></div>
       <div class="fyp-lesson-tools"><button class="btn ${x.completed?'soft':'accent'}" data-action="complete">${x.completed?I.check:I.cap} ${x.completed?'Learned':'I learned this'}</button><button class="btn ghost" data-action="quiz">${I.brain} ${x.quizResult?'Review quiz':'Quick quiz'}</button><button class="btn ghost fyp-listen" data-action="listen" aria-pressed="false">${I.headphones} Listen</button></div>
       <div class="fyp-overline" style="margin-top:18px">SOURCES</div><div class="fyp-sources" data-action-host="source">${sourceHTML(x.sources)}</div>
@@ -290,6 +305,7 @@ export async function viewFYP(query) {
     haptic(b?.dataset?.action==='like'?12:6);
     if(b.dataset.action==='manage'){pauseMedia();return managePost(x,{onChange:nx=>{Object.assign(x,nx);const cap=$('.fyp-caption p, .fyp-caption .fyp-hook',el);if(cap)cap.textContent=x.hook||'';},onDelete:()=>{el.remove();items.splice(items.indexOf(x),1);toast('Post deleted');}});}
     const action=b.dataset.action;
+    if(action==='likers'){closeSheet&&closeSheet();return openLikers(x);}
     if(['caption','more','comment','quiz','share','report','source'].includes(action)) {pauseMedia();stopSpeech();}
     if(x.sponsored&&action==='caption'){window.open(x.ad.link,'_blank','noopener');api(`/ads/${encodeURIComponent(x.id)}/click`,{body:{}}).catch(()=>{});return;}
     if(action==='follow'){const au=x.author||{};b.disabled=true;try{const r=await api('/social/follow/'+encodeURIComponent(au.username),{body:{follow:!au.isFollowing}});items.filter(y=>y.author?.username===au.username).forEach(y=>y.author.isFollowing=r.following);$$('[data-lesson]',p).forEach(c=>{const y=items.find(z=>String(z.id)===c.dataset.lesson);const f=$('[data-action="follow"]',c);if(y&&f&&y.author?.username===au.username){f.classList.toggle('on',r.following);f.innerHTML=r.following?TT.check:TT.plus;}});toast(r.following?`Following @${au.username}`:`Unfollowed @${au.username}`);}catch(e){toast(e.message);}finally{b.disabled=false;}return;}
@@ -350,19 +366,20 @@ export async function viewFYP(query) {
   }
   async function load() {
     const mine=++request;stopSpeech();disposeMedia();p.innerHTML='<div class="fyp-loading"><span class="spin"></span></div>';
-    try {const r=await api(`/fyp?tab=${tab}&topic=${encodeURIComponent(topic)}&format=${format}&offset=${offset}&limit=10${post?'&post='+encodeURIComponent(post):''}`);if(!alive||mine!==request)return;items=r.items;topics=r.topics;hasMore=r.hasMore;nextOffset=r.nextOffset;draw();}
+    try {const r=await api(listIds?`/fyp?ids=${encodeURIComponent(listIds.join(','))}&offset=0&limit=50`:`/fyp?tab=${tab}&topic=${encodeURIComponent(topic)}&format=${format}&offset=${offset}&limit=10${post?'&post='+encodeURIComponent(post):''}`);if(!alive||mine!==request)return;items=r.items;topics=r.topics;hasMore=r.hasMore;nextOffset=r.nextOffset;draw();}
     catch(e){if(!alive||mine!==request)return;p.innerHTML=`<div class="empty"><h2>Couldn’t load your feed</h2><p>${esc(e.message)}</p><button class="btn" id="fypRetry">Try again</button></div>`;$('#fypRetry',p).onclick=load;}
   }
   await load();
 }
 
 const fmtN = n => compact(Number(n)||0);
-const thumbOf = x => { const m=x.media||{}; const src=m.poster||(x.format==='reel'?'':m.src)||m.slides?.[0]?.src||''; return /^\/(ugc|media\/(fyp|house))\//.test(src)?src:''; };
+const thumbOf = x => { const m=x.media||{}; const src=m.poster||(x.format==='reel'?'':m.src)||m.slides?.[0]?.src||''; return /^\/(ugc|media\/(fyp|house|jannah))\//.test(src)?src:''; };
 function gridHTML(list, emptyMsg, mine) {
   if (!list) return `<div class="tt-empty"><div class="tt-empty-ic">${I.lock||I.x}</div><b>This list is private</b></div>`;
   if (!list.length) return `<div class="tt-empty"><p class="muted small">${emptyMsg}</p></div>`;
   if(mine)list=[...list].sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0));
-  return `<div class="tt-grid">${list.map(x=>{const t=thumbOf(x),vid=x.format==='reel',src=x.media?.src||'';return `<a class="tt-cell" href="#/fyp?post=${encodeURIComponent(x.id)}">${t?`<img src="${escAttr(t)}" alt="" loading="lazy">`:vid&&/^\/(ugc|media\/(fyp|house))\//.test(src)?`<video src="${escAttr(src)}#t=0.5" muted playsinline preload="metadata"></video>`:''}<span class="tt-type">${x.format==='carousel'?(I.layers||I.copy):''}</span>${x.views!=null?`<span class="tt-views">${I.play} ${fmtN(x.views)}</span>`:''}${x.pinned?'<span class="tt-pin">Pinned</span>':''}${mine&&x.visibility&&x.visibility!=='everyone'?`<span class="tt-priv">${I.lock}</span>`:''}${mine?`<button class="tt-own" data-own="${escAttr(x.id)}" aria-label="Manage post">${I.more}</button>`:''}</a>`;}).join('')}</div>`;
+  const gid='g'+Math.random().toString(36).slice(2,8);try{sessionStorage.setItem('shukr.pf.'+gid,JSON.stringify(list.map(x=>x.id)))}catch{}
+  return `<div class="tt-grid">${list.map(x=>{const t=thumbOf(x),vid=x.format==='reel',src=x.media?.src||'';return `<a class="tt-cell" href="#/fyp?post=${encodeURIComponent(x.id)}&list=${gid}">${t?`<img src="${escAttr(t)}" alt="" loading="lazy">`:vid&&/^\/(ugc|media\/(fyp|house|jannah))\//.test(src)?`<video src="${escAttr(src)}#t=0.5" muted playsinline preload="metadata"></video>`:''}<span class="tt-type">${x.format==='carousel'?(I.layers||I.copy):''}</span>${x.views!=null?`<span class="tt-views">${I.play} ${fmtN(x.views)}</span>`:''}${x.pinned?'<span class="tt-pin">Pinned</span>':''}${mine&&x.visibility&&x.visibility!=='everyone'?`<span class="tt-priv">${I.lock}</span>`:''}${mine?`<button class="tt-own" data-own="${escAttr(x.id)}" aria-label="Manage post">${I.more}</button>`:''}</a>`;}).join('')}</div>`;
 }
 // TikTok-style profile: yours (/profile) or someone else’s (/u/:username)
 export async function viewProfile(username) {
@@ -496,4 +513,17 @@ export function managePost(x, { onChange, onDelete } = {}) {
       $('#cup', s2).onchange = async e => { const f = e.target.files[0]; if (!f) return; try { await put({ posterId: await upload(f) }); c2(); toast('Cover updated'); } catch (er) { $('.err', s2).textContent = er.message; } };
     });
   }
+}
+
+// Who liked your post (creator only): newest first, tap a person to open their profile, follow back in one tap.
+export async function openLikers(x){
+  const av=u=>`<span class="lk-av">${u.avatar?`<img src="${escAttr(u.avatar)}" alt="" loading="lazy" decoding="async">`:esc((u.name||u.username||'?')[0].toUpperCase())}</span>`;
+  sheet(`<h3 id="lkH">Liked by</h3><div class="lk-list">${'<div class="lk-skel"></div>'.repeat(5)}</div>`,async(sh,close)=>{
+    try{const r=await api(`/fyp/${encodeURIComponent(x.id)}/likers`);if(!sh.isConnected)return;
+      $('#lkH',sh).textContent=`${r.likers.length.toLocaleString()} like${r.likers.length===1?'':'s'}`;
+      $('.lk-list',sh).innerHTML=r.likers.length?r.likers.map(u=>`<div class="lk-row"><a href="#/u/${encodeURIComponent(u.username||'')}" class="lk-who">${av(u)}<span><b>${esc(u.username||u.name)}</b><small>${esc(u.name||'')}</small></span></a>${u.following?'<button class="btn ghost sm" disabled>Following</button>':`<button class="btn accent sm" data-fb="${escAttr(u.username||'')}">Follow back</button>`}</div>`).join(''):'<p class="muted">No likes yet — keep sharing.</p>';
+      $$('.lk-who',sh).forEach(a=>a.onclick=()=>close());
+      $$('[data-fb]',sh).forEach(b=>b.onclick=async()=>{b.disabled=true;try{await api(`/social/follow/${encodeURIComponent(b.dataset.fb)}`,{body:{}});b.textContent='Following';b.className='btn ghost sm';}catch(e){b.disabled=false;toast(e.message);}});
+    }catch(e){if(sh.isConnected)$('.lk-list',sh).innerHTML=`<p class="muted">${esc(e.message)}</p>`;}
+  });
 }

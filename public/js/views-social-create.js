@@ -85,18 +85,25 @@ export async function viewCreate(query) {
         <div class="cam-fx" ${camFilter !== 'normal' || showFx ? '' : 'hidden'}>${FX.FILTERS.map(([k, l]) => `<button data-cf="${k}" class="${camFilter === k ? 'on' : ''}">${l}</button>`).join('')}</div>
         <div class="cam-hint">Tap for photo · hold for video</div>
         <div class="cam-row">
-          <label class="cam-gallery" aria-label="Upload from gallery">${GALLERY}<b>Upload</b><input type="file" accept="image/*,video/*" multiple hidden data-pick></label>
+          <label class="cam-gallery" aria-label="Upload from your gallery">${GALLERY}<b>Upload</b><input type="file" accept="image/*,video/*" multiple hidden data-pick></label>
           <button class="cam-shutter" data-shutter aria-label="Take photo or hold to record"><span></span><svg viewBox="0 0 100 100" class="cam-ring"><circle cx="50" cy="50" r="46"/></svg></button>
-          <label class="cam-gallery cam-native" aria-label="Open phone camera">${I.mic ? '' : ''}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 1 2-2h2l2-2h6l2 2h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><circle cx="12" cy="13" r="4"/></svg><b>Phone cam</b><input type="file" accept="image/*,video/*" capture="environment" hidden data-pick></label>
+          <button class="cam-gallery cam-flip2" data-flip2 aria-label="Switch to selfie / back camera">${FLIP}<b>Flip</b></button>
+          <input type="file" accept="image/*" capture="environment" hidden data-pick data-cap-photo><input type="file" accept="video/*" capture="environment" hidden data-pick data-cap-video>
         </div>
         <div class="cam-modes" role="tablist"><button data-kind="post" class="${kind === 'post' ? 'on' : ''}" role="tab">Post</button><button data-kind="story" class="${kind === 'story' ? 'on' : ''}" role="tab">Story</button></div>
       </div></div>`;
     $('[data-close]', host).onclick = close;
     $$('[data-pick]', host).forEach(i => i.onchange = () => { if (i.files?.length) addFiles([...i.files]); i.value = ''; });
+    // Flip (bottom-right, big target). If the live camera can't run here, it opens the phone's own camera instead.
+    $('[data-flip2]', host).onclick = () => { if (!stream) return $('[data-cap-photo]', host).click(); facing = facing === 'user' ? 'environment' : 'user'; startCamera(); };
     $$('[data-kind]', host).forEach(b => b.onclick = () => { kind = b.dataset.kind; $$('[data-kind]', host).forEach(x => x.classList.toggle('on', x === b)); });
     $('[data-flip]', host).onclick = () => { facing = facing === 'user' ? 'environment' : 'user'; startCamera(); };
-    const applyCamFx = () => { const fx = FX.build(camFilter, 100, {}), f = $('#camF', host), v = $('.cam-view', host); f.querySelector('feColorMatrix').setAttribute('values', FX.svgMatrix(fx));
-      const tv = fx.curve.map(x => x.toFixed(4)).join(' '); f.querySelectorAll('feFuncR,feFuncG,feFuncB').forEach(n => n.setAttribute('tableValues', tv)); v.style.filter = camFilter === 'normal' ? '' : 'url(#camF)'; };
+    // Live preview: CSS filter functions (GPU, work on <video> on Android/iOS — SVG url() filters don't). Photos/videos get the exact filter after capture.
+    const CSSF = { normal: '', noor: 'brightness(1.06) contrast(1.08) saturate(1.15)', madinah: 'sepia(.25) saturate(1.2) contrast(1.1) hue-rotate(-8deg)', oasis: 'saturate(1.4) contrast(1.12)',
+      dawn: 'sepia(.2) saturate(1.1) brightness(1.06) hue-rotate(-12deg) contrast(.95)', dusk: 'sepia(.35) saturate(1.05) contrast(1.15) brightness(.95)', sahara: 'sepia(.5) contrast(1.08) saturate(1.1)',
+      silk: 'brightness(1.08) contrast(.92) saturate(.9)', teal: 'hue-rotate(-14deg) saturate(1.3) contrast(1.2)', vivid: 'saturate(1.6) contrast(1.18)', cool: 'saturate(1.1) hue-rotate(12deg) brightness(1.03)',
+      retro: 'sepia(.45) contrast(1.1) saturate(.85)', mono: 'grayscale(1) contrast(1.12)', noir: 'grayscale(1) contrast(1.45) brightness(.95)', moon: 'grayscale(1) brightness(1.1) contrast(.85)', night: 'brightness(.9) contrast(1.25) saturate(.9) hue-rotate(10deg)' };
+    const applyCamFx = () => { const v = $('.cam-view', host); if (v) v.style.filter = camFilter === 'normal' ? '' : (CSSF[camFilter] || ''); };
     applyCamFx();
     $('[data-fxbtn]', host).onclick = () => { showFx = !showFx; $('.cam-fx', host).hidden = !showFx; };
     $$('[data-cf]', host).forEach(b => b.onclick = () => { camFilter = b.dataset.cf; $$('[data-cf]', host).forEach(x => x.classList.toggle('on', x === b)); $('[data-fxbtn]', host).classList.toggle('on', camFilter !== 'normal'); applyCamFx(); });
@@ -125,38 +132,42 @@ export async function viewCreate(query) {
   }
   async function startCamera() {
     stopStream(); const v = $('.cam-view', host), msg = $('.cam-msg', host); if (!v) return;
-    v.classList.toggle('mirror', facing === 'user');
-    if (!navigator.mediaDevices?.getUserMedia) { msg.hidden = false; msg.innerHTML = `<b>Camera preview isn’t available here.</b><span>Use <em>Phone cam</em> or <em>Upload</em> below.</span>`; return; }
+    v.classList.toggle('mirror', facing === 'user'); host.classList.toggle('cam-front', facing === 'user');
+    if (!navigator.mediaDevices?.getUserMedia) { msg.hidden = false; msg.innerHTML = `<b>Camera preview isn’t available here.</b><span>Use <em>Upload</em> below, or tap <em>Flip</em> to open your phone camera.</span>`; return; }
     try {
       // Ask for the sensor's natural framing. Forcing a 9:16 aspect ratio makes Android crop the middle of the
       // sensor (looks zoomed in); the browser rotates the frame to portrait by itself when the phone is upright.
-      const video = { facingMode: { ideal: facing }, width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 }, resizeMode: { ideal: 'none' } };
+      const video = facing === 'user' ? { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 960 }, frameRate: { ideal: 30 } } : { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } };
       stream = await navigator.mediaDevices.getUserMedia({ video, audio: true })
         .catch(() => navigator.mediaDevices.getUserMedia({ video, audio: false }))
         .catch(() => navigator.mediaDevices.getUserMedia({ video: { facingMode: facing }, audio: false }));
       if (!alive) return stopStream();
       // Reset any digital zoom to 1× (some Android phones remember a zoom level).
       const track = stream.getVideoTracks()[0];
-      try { const cap = track.getCapabilities?.(); if (cap && cap.zoom) { const z = Math.min(cap.zoom.max, Math.max(cap.zoom.min, 1)); await track.applyConstraints({ advanced: [{ zoom: z }] }); } } catch {}
+      try { const cap = track.getCapabilities?.(); if (cap && cap.zoom) await track.applyConstraints({ advanced: [{ zoom: cap.zoom.min }] }); } catch {}
       v.srcObject = stream; await v.play().catch(() => {}); msg.hidden = true;
       const fit = () => { if (!v.videoWidth) return; const portrait = v.videoHeight > v.videoWidth; host.classList.toggle('cam-landscape-frame', !portrait); };
       v.onloadedmetadata = fit; v.onresize = fit; fit();
     } catch (e) {
-      msg.hidden = false; msg.innerHTML = `<b>Allow camera access to shoot in Shukr.</b><span>Or use <em>Phone cam</em> / <em>Upload</em> below.</span><button class="cam-retry">Try again</button>`;
+      msg.hidden = false; msg.innerHTML = `<b>Allow camera access to shoot in Shukr.</b><span>Or use <em>Upload</em> below.</span><button class="cam-retry">Try again</button>`;
       $('.cam-retry', msg).onclick = startCamera;
     }
   }
   function takePhoto() {
     const v = $('.cam-view', host); if (!v?.videoWidth) return;
-    const c = document.createElement('canvas'); c.width = v.videoWidth; c.height = v.videoHeight; const g = c.getContext('2d');
+    // Crop to the visible (cover-fitted) area so the photo matches the full-screen preview.
+    const vw = v.videoWidth, vh = v.videoHeight, ar = v.clientWidth / Math.max(1, v.clientHeight); let sw = vw, sh2 = vh;
+    if (facing !== 'user') { if (vw / vh > ar) sw = Math.round(vh * ar); else sh2 = Math.round(vw / ar); }
+    const sx = (vw - sw) / 2, sy = (vh - sh2) / 2;
+    const c = document.createElement('canvas'); c.width = sw; c.height = sh2; const g = c.getContext('2d');
     if (facing === 'user') { g.translate(c.width, 0); g.scale(-1, 1); }
     if (torch && facing === 'user') { host.classList.add('selfie-flash'); setTimeout(() => host.classList.remove('selfie-flash'), 400); }
-    g.drawImage(v, 0, 0); if (camFilter !== 'normal') { const d = g.getImageData(0, 0, c.width, c.height); FX.applyPixels(d, FX.build(camFilter, 100, {})); g.putImageData(d, 0, 0); }
+    g.drawImage(v, sx, sy, sw, sh2, 0, 0, sw, sh2); if (camFilter !== 'normal') { const d = g.getImageData(0, 0, c.width, c.height); FX.applyPixels(d, FX.build(camFilter, 100, {})); g.putImageData(d, 0, 0); }
     host.classList.add('flash'); setTimeout(() => host.classList.remove('flash'), 180);
     c.toBlob(b => { if (b) addFiles([new File([b], 'photo.jpg', { type: 'image/jpeg' })]); }, 'image/jpeg', .9);
   }
   function startRecording() {
-    holdTimer = null; if (!stream || !window.MediaRecorder) return toast('Video recording isn’t supported here — use Phone cam.');
+    holdTimer = null; if (!stream || !window.MediaRecorder) return toast('Video recording isn’t supported here — use Upload.');
     const type = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm'].find(t => MediaRecorder.isTypeSupported?.(t)) || '';
     try { recorder = new MediaRecorder(stream, type ? { mimeType: type, videoBitsPerSecond: 4e6 } : undefined); } catch { recorder = null; return toast('Couldn’t start recording.'); }
     chunks = []; recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };

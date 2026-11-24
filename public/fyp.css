@@ -519,3 +519,21 @@ a.fyp-handle:active{opacity:.7}
 
 .fyp-rail{gap:8px!important}.fyp-avatar-wrap{margin-bottom:8px}.fyp-rail .fyp-disc{margin-top:2px}
 .fyp-action span,.fyp-action b{font-size:12.5px!important;font-weight:700!important}
+
+/* Camera fills the whole screen like TikTok/Instagram; the photo is cropped to what you see. */
+.cam-view{object-fit:cover!important;background:#000}
+.create-screen{height:100dvh;width:100vw}
+.cam,.create-screen .cam-view{height:100%!important}
+/* Popups (tag people, camera app chooser) must sit above the full-screen camera. */
+html.creating .sheet-scrim{z-index:9700}html.creating .sheet{z-index:9710}html.creating .toast{z-index:9800}
+.cam-natopts{display:grid;gap:8px}
+.cam-msg{left:24px;right:64px}.cam-gallery b{white-space:nowrap}.cam-row{align-items:flex-end}
+
+/* Profile feed (TikTok: tap a profile post, scroll only that creator's posts) */
+.fyp-listmode .fyp-toolbar,.fyp-listmode #fypStories,.fyp-listmode #egHead{display:none!important}
+.fyp-listbar{position:absolute;top:0;left:0;right:0;z-index:6;display:flex;align-items:center;gap:8px;padding:calc(var(--safe-top) + 8px) 10px 8px;color:#fff;background:linear-gradient(rgba(0,0,0,.45),transparent);pointer-events:none}
+.fyp-listbar>*{pointer-events:auto}.fyp-listtitle{font-weight:800;font-size:16px;text-shadow:0 1px 3px rgba(0,0,0,.5)}
+
+/* Selfie: show the whole front-camera frame (it's 4:3; covering a 9:19 phone screen crops ~45% = looks zoomed). Blurred fill behind. */
+.create-screen.cam-front .cam-view{object-fit:contain!important}
+.create-screen.cam-front .cam{background:#000}

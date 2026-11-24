@@ -92,10 +92,14 @@ export async function viewSoundCredits() {
   const texts = [
     { title: 'Quran Arabic text', artist: 'Tanzil Project (tanzil.net) — unmodified Uthmani text', license: 'CC BY 3.0', source: 'https://tanzil.net/docs/text_license' },
     { title: 'Quran English translation', artist: 'Marmaduke Pickthall, 1930', license: 'Public domain', source: 'https://en.wikisource.org/wiki/The_Meaning_of_the_Glorious_Koran' },
+    { title: 'English Quran narration & translation', artist: 'The Clear Quran by Dr. Talal Itani (ClearQuran.com), audio by Awais Mahmood — unmodified', license: 'CC BY-ND 4.0', source: 'https://clearquran.com' },
+    { title: 'Quran recitations', artist: 'Mishary Alafasy, Al-Husary, Al-Minshawi, Abdul Basit, As-Sudais, Ash-Shuraim, Al-Shatri, Ar-Rifai — streamed from Quran Foundation (quran.com)', license: 'Credited, stream only' },
+    { title: 'Quran translations', artist: 'Quran data provided by Quran Foundation; Pickthall (public domain); The Clear Quran (CC BY-ND); tajweed text: AlQuran.cloud', license: 'Credited' },
+    { title: '@thejannahlife scenes', artist: 'AI-painted by the Shukr team; Arabic from Tanzil, English captions Pickthall; recitation by Mishary Rashid Alafasy via Quran Foundation', license: 'Scenes © Shukr; recitation credited' },
     { title: 'Hadith Arabic texts', artist: 'Classical collections via fawazahmed0/hadith-api', license: 'Public domain / Unlicense', source: 'https://github.com/fawazahmed0/hadith-api' },
     { title: 'English of hadith, duas & adhkar', artist: 'Shukr’s own translations', license: '© Shukr' },
     { title: 'Prayer-time calculation', artist: 'Adhan JavaScript library (Batoul Apps)', license: 'MIT', source: 'https://github.com/batoulapps/adhan-js' },
-    { title: 'Maps', artist: 'Leaflet; map data © OpenStreetMap contributors', license: 'BSD-2 / ODbL', source: 'https://www.openstreetmap.org/copyright' },
+    { title: 'Maps', artist: 'MapLibre GL & Leaflet; OpenFreeMap tiles; map data © OpenStreetMap contributors', license: 'BSD-3 / BSD-2 / ODbL', source: 'https://www.openstreetmap.org/copyright' },
     { title: 'Stickers', artist: 'Twemoji by Twitter, Inc and contributors', license: 'CC BY 4.0', source: 'https://github.com/twitter/twemoji' },
     { title: 'Audiobooks', artist: 'LibriVox volunteers (public-domain books)', license: 'Public domain', source: 'https://librivox.org' }];
   p.innerHTML = `<p class="muted small">Shukr only uses content that is public domain, freely licensed, or created by Shukr. Thank you to everyone below.</p>

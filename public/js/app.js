@@ -3,6 +3,7 @@ import { viewNotifications, viewJobs, viewMarket, viewListing, notifBadge } from
 import { viewAudio } from './views-audio.js';
 import { viewQuests, viewUniversity, viewLesson, viewSoundCredits } from './views-creator.js';
 import './polyfills.js';
+import { installApp, mountInstallPill, showInstall } from './install.js';
 import { $, $$, esc, I, api, state, toast, applyPrefs, route, go, LS, startNasheed, TZ, guessMethod, saveSettings, sectionOn } from './core.js';
 import * as D from './views-daily.js';
 import * as W from './views-worship.js';
@@ -17,12 +18,12 @@ import { viewSocialHub, mountSocialTabbar } from './views-social-hub.js';
 import { watchIncomingCalls } from './calls.js';
 import { viewCreate } from './views-social-create.js';
 import * as U from './views-ummah.js';
+import { FEATURE_ROUTES } from './features/index.js';
 import { viewHabits } from './views-habits.js';
 // Referral links: /?ref=CODE → remember for sign-up.
 (() => { try { const r = new URLSearchParams(location.search).get('ref'); if (r && /^[a-z0-9]{3,40}$/i.test(r)) { localStorage.setItem('shukrRef', r.toLowerCase()); fetch('/api/ref/click', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: r }) }).catch(() => {}); } } catch {} })();
 // Shukr v2 entry: auth, onboarding, router
 
-window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); state.deferredPrompt = e; });
 window.addEventListener('shukr:logout', () => authView());
 const beacon = (kind, extra) => { try { window.shukrBeacon && window.shukrBeacon(kind, extra); } catch (e) {} };
 window.addEventListener('unhandledrejection', e => { const m = (e.reason && e.reason.message) || ''; if (m && !/abort|Please sign in/i.test(m)) toast(m); });
@@ -58,8 +59,10 @@ function authView(mode = 'login') {
       ${mode === 'login' ? '<div style="text-align:right;margin-top:8px"><button type="button" class="link" id="fg">Forgot password?</button></div>' : ''}
       <button class="btn accent block" style="margin-top:14px">${mode === 'login' ? 'Sign in' : 'Create account'}</button><div class="err" id="aerr"></div></form>
     <div style="text-align:center;margin-top:8px"><button class="link" id="sw">${mode === 'login' ? 'New here? Create an account' : 'Have an account? Sign in'}</button></div>
-    <div class="auth-scholar"><button class="link" id="scl">${I.cap} Islamic scholar? Sign up as a scholar</button></div></div></main>`;
+    <div class="auth-scholar"><button class="link" id="scl">${I.cap} Islamic scholar? Sign up as a scholar</button></div>
+    ${showInstall() ? `<button class="ins-auth" id="ains"><img src="/icons/icon-192.png" alt=""><span><b>Get the Shukr app</b><small>Free · no app store needed</small></span>${I.download}</button>` : ''}</div></main>`;
   $('#scl').onclick = () => authView('scholar');
+  $('#ains')?.addEventListener('click', () => installApp());
   $('#sw').onclick = () => authView(mode === 'login' ? 'register' : 'login');
   $('#fg')?.addEventListener('click', () => authView('forgot'));
   $('#af').onsubmit = async e => { e.preventDefault(); $('#aerr').textContent = '';
@@ -68,7 +71,7 @@ function authView(mode = 'login') {
 }
 
 async function boot(user, isNew) {
-  const me = await api('/me'); state.user = me.user; state.ai = me.ai; state.vapid = me.vapid; state.flags = me.flags || {}; document.documentElement.classList.toggle('recite-on', !!state.flags.recitation);
+  const me = await api('/me'); state.user = me.user; state.ai = me.ai; state.vapid = me.vapid; state.flags = me.flags || {}; document.documentElement.classList.add('recite-on');
   if (!state.user.settings.tz || state.user.settings.tz === 'UTC') { await saveSettings({ tz: TZ, ...(state.user.settings.lat == null ? { method: guessMethod(TZ) } : {}) }).catch(() => {}); }
   applyPrefs();
   if (isNew) { location.hash = '#/welcome'; }
@@ -83,7 +86,8 @@ function welcome() {
     <button class="btn ghost block" id="w1" style="margin-bottom:10px">${I.pin} Use my location</button>
     <button class="btn ghost block" id="w2" style="margin-bottom:10px">${I.clock} Turn on prayer & Jummah alerts</button>
     <button class="btn accent block" id="w3">Start</button>
-    <div class="faint small" style="margin-top:14px;text-align:center">Install Shukr: in Safari tap Share → Add to Home Screen; in Chrome tap ⋮ → Install app.</div></div></main>`;
+    ${showInstall() ? `<button class="ins-auth" id="w4"><img src="/icons/icon-192.png" alt=""><span><b>Add Shukr to your home screen</b><small>Opens like an app · free</small></span>${I.download}</button>` : ''}</div></main>`;
+  const w4 = $('#w4'); if (w4) w4.onclick = () => installApp();
   $('#w1').onclick = () => W.locate().then(() => { $('#w1').innerHTML = `${I.check} ${esc(state.user.settings.city || 'Location set')}`; }).catch(() => {});
   $('#w2').onclick = () => M.enablePush().then(() => { $('#w2').innerHTML = `${I.check} Reminders on`; }).catch(e => toast(e.message, 4000));
   $('#w3').onclick = () => go('/');
@@ -113,7 +117,8 @@ const ROUTES = [
   [/^\/chat(?:\/(new|\d+))?$/, m => A.viewChat(m[1] || 'new'), 'alim'], [/^\/memory$/, () => A.viewMemory()],
   [/^\/insights$/, () => M.viewInsights(), 'insights'],
   [/^\/ummah$/, () => U.viewUmmahHub(), 'ummah'], [/^\/ummah\/feed$/, () => M.viewUmmah(), 'ummah'], [/^\/ummah\/edit$/, () => M.viewUmmah('edit'), 'ummah'], [/^\/ummah\/admin$/, () => M.viewUmmahAdmin(), 'ummah'], [/^\/ummah\/u\/([\w]+)$/, m => M.viewUmmahUser(m[1]), 'ummah'],
-  [/^\/settings$/, () => M.viewSettings()]
+  [/^\/settings$/, () => M.viewSettings()],
+  ...FEATURE_ROUTES()
 ];
 let seq = 0;
 async function router() {
@@ -154,6 +159,8 @@ function started() {
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
   try { await boot(); } catch (e) { if (e && e.status !== 401 && !/sign in|auth/i.test(e.message || '')) { console.warn('boot', e); beacon('boot-error', { message: String(e && e.message), stack: String(e && e.stack || '').slice(0, 600) }); } authView(); }
   started();
+  setTimeout(mountInstallPill, 4000);
+  setTimeout(() => { if (state.user?.settings?.lat != null) fetch('/api/worship-plus/halal/warm', { method: 'POST', credentials: 'same-origin' }).catch(() => {}); }, 6000);
 })();
 
 // CSP-safe replacement for inline onclick on error screens

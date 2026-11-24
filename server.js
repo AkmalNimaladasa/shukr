@@ -722,6 +722,7 @@ app.get('/api/export', auth, wrap(async (req, res) => {
 // ---------- Modules ----------
 const ctx = { app, q, auth, wrap, AI_BASE, AI_KEY, FAST_MODEL, CHAT_MODEL, aiChat, parseJson, embed, embedFast, cosine, remember, recall, extractMemories,
   computeStats, statsBrief, localParts, todayFor, addDays, defaultSettings, prayerTimes, prayerTimesFor, dbReady: () => dbReady, hashPass, newSession, checkPass, tokHash, sec };
+ctx.s3 = s3;
 require('./lib/reminders')(ctx);
 require('./lib/features')(ctx);
 require('./lib/fyp')(ctx);
@@ -744,6 +745,10 @@ require('./lib/video-editor')(ctx);
 require('./lib/creator-quests')(ctx);
 require('./lib/sound-library')(ctx);
 require('./lib/ummah')(ctx);
+// Feature plug-ins: every lib/features/*.js exports function(ctx)
+for (const f of require('fs').readdirSync(require('path').join(__dirname, 'lib', 'features')).filter(f => f.endsWith('.js')).sort()) {
+  try { require('./lib/features/' + f)(ctx); } catch (e) { console.error('feature', f, e.message); }
+}
 { const seed = require('./lib/house-accounts'); const t = setInterval(() => { if (dbReady) { clearInterval(t); setTimeout(() => seed(ctx), 3000); } }, 2000); t.unref?.(); }
 // One-time: the old default theme was 'light'; switch those users to 'auto' (follow phone dark mode).
 setTimeout(async () => { try { if (!dbReady) return; await q(`UPDATE users SET settings = jsonb_set(settings, '{theme}', '"auto"') WHERE settings->>'theme' = 'light' AND NOT (settings ? 'themeChosen')`); } catch (e) { console.log('theme migrate', e.message); } }, 15000);

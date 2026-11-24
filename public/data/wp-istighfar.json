@@ -1,0 +1,63 @@
+{
+  "formulas": [
+    {
+      "id": "sayyid",
+      "title": "Sayyid al-Istighfar",
+      "tag": "The master of seeking forgiveness",
+      "short": "Sayyid al-Istighfar",
+      "ar": "اللَّهُمَّ أَنْتَ رَبِّي لَا إِلَٰهَ إِلَّا أَنْتَ، خَلَقْتَنِي وَأَنَا عَبْدُكَ، وَأَنَا عَلَىٰ عَهْدِكَ وَوَعْدِكَ مَا اسْتَطَعْتُ، أَعُوذُ بِكَ مِنْ شَرِّ مَا صَنَعْتُ، أَبُوءُ لَكَ بِنِعْمَتِكَ عَلَيَّ، وَأَبُوءُ لَكَ بِذَنْبِي، فَاغْفِرْ لِي، فَإِنَّهُ لَا يَغْفِرُ الذُّنُوبَ إِلَّا أَنْتَ",
+      "tr": "Allahumma anta Rabbi, la ilaha illa ant. Khalaqtani wa ana ‘abduk, wa ana ‘ala ‘ahdika wa wa‘dika mastata‘t. A‘udhu bika min sharri ma sana‘t. Abu’u laka bi-ni‘matika ‘alayya, wa abu’u laka bi-dhanbi, faghfir li, fa-innahu la yaghfirudh-dhunuba illa ant.",
+      "en": "O Allah, You are my Lord; there is no god but You. You created me and I am Your servant, and I hold to my covenant and promise to You as far as I am able. I seek Your protection from the harm of what I have done. I admit Your favours upon me and I admit my sin, so forgive me — for none forgives sins except You.",
+      "note": "The Prophet ﷺ said whoever says it during the day with firm faith and dies before evening is among the people of Paradise — and the same for the night.",
+      "ref": "Sahih al-Bukhari 6306"
+    },
+    {
+      "id": "atub",
+      "title": "Astaghfirullah wa atubu ilayh",
+      "tag": "The Prophet's ﷺ daily habit",
+      "short": "Astaghfirullah wa atubu ilayh",
+      "ar": "أَسْتَغْفِرُ اللَّهَ وَأَتُوبُ إِلَيْهِ",
+      "tr": "Astaghfirullaha wa atubu ilayh.",
+      "en": "I ask Allah for forgiveness and I turn back to Him in repentance.",
+      "note": "The Prophet ﷺ said that he sought Allah's forgiveness and turned to Him in repentance more than seventy times a day.",
+      "ref": "Sahih al-Bukhari 6307"
+    },
+    {
+      "id": "tawwab",
+      "title": "Rabbighfir li wa tub ‘alayya",
+      "tag": "Counted 100 times in one sitting",
+      "short": "Rabbighfir li wa tub ‘alayya",
+      "ar": "رَبِّ اغْفِرْ لِي وَتُبْ عَلَيَّ، إِنَّكَ أَنْتَ التَّوَّابُ الرَّحِيمُ",
+      "tr": "Rabbighfir li wa tub ‘alayya, innaka antat-Tawwabur-Rahim.",
+      "en": "My Lord, forgive me and accept my repentance. Truly You are the One who keeps accepting repentance, the Most Merciful.",
+      "note": "Ibn ‘Umar reported that the Companions would count the Prophet ﷺ saying this a hundred times in a single gathering.",
+      "ref": "Sunan Abi Dawud 1516; Jami‘ at-Tirmidhi 3434"
+    },
+    {
+      "id": "azim",
+      "title": "Astaghfirullah al-‘Azim…",
+      "tag": "Forgiveness even for great sins",
+      "short": "Astaghfirullah al-‘Azim",
+      "ar": "أَسْتَغْفِرُ اللَّهَ الْعَظِيمَ الَّذِي لَا إِلَٰهَ إِلَّا هُوَ الْحَيَّ الْقَيُّومَ وَأَتُوبُ إِلَيْهِ",
+      "tr": "Astaghfirullahal-‘Azim alladhi la ilaha illa huwal-Hayyul-Qayyumu wa atubu ilayh.",
+      "en": "I ask forgiveness of Allah, the Supreme — there is no god but He, the Ever-Living, the Sustainer of all — and I turn to Him in repentance.",
+      "note": "The Prophet ﷺ said whoever says this will be forgiven, even if he had fled from the battlefield.",
+      "ref": "Sunan Abi Dawud 1517; Jami‘ at-Tirmidhi 3577"
+    },
+    {
+      "id": "simple",
+      "title": "Astaghfirullah",
+      "tag": "Three times after every salah",
+      "short": "Astaghfirullah",
+      "ar": "أَسْتَغْفِرُ اللَّهَ",
+      "tr": "Astaghfirullah.",
+      "en": "I ask Allah for forgiveness.",
+      "note": "When the Prophet ﷺ finished his prayer he would say “Astaghfirullah” three times.",
+      "ref": "Sahih Muslim 591"
+    }
+  ],
+  "benefits": [
+    { "s": 71, "a": [10, 11, 12], "head": "Rain, wealth, children and gardens", "intro": "Prophet Nuh (Noah) told his people what istighfar opens up:" },
+    { "s": 11, "a": [3], "head": "A good life until the appointed time", "intro": "Allah promises those who seek pardon and turn back to Him:" }
+  ]
+}

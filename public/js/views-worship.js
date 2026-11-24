@@ -106,40 +106,65 @@ export async function viewPrayer() {
   draw();
 }
 
-// ================= QIBLA (device compass) =================
+// ================= QIBLA (live GPS + compass, true-north corrected) =================
 export async function viewQibla() {
-  const p = shell('Qibla'); const t = computeTimes();
-  if (!t) { p.innerHTML = empty('compass', 'Set your location first.', `<div style="margin-top:14px"><button class="btn accent" id="loc">Use my location</button></div>`); $('#loc').onclick = () => locate().then(viewQibla).catch(() => {}); return; }
-  const q = t.qibla;
-  const toRad = x => x * Math.PI / 180; const s = state.user.settings;
-  const dist = (() => { const la1 = toRad(s.lat), lo1 = toRad(s.lng), la2 = toRad(21.4225), lo2 = toRad(39.8262); const h = Math.sin((la2 - la1) / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin((lo2 - lo1) / 2) ** 2; return Math.round(2 * 6371 * Math.asin(Math.sqrt(h))); })();
-  p.innerHTML = `<div style="text-align:center;margin-top:12px"><div style="font-family:var(--serif);font-size:42px" id="qdeg">${q.toFixed(1)}°</div><div class="muted small">Qibla bearing from true North · ${dist.toLocaleString()} km to the Ka‘bah</div></div>
+  const p = shell('Qibla'); const s = state.user.settings || {};
+  const toRad = x => x * Math.PI / 180, toDeg = x => x * 180 / Math.PI, KA = [21.422487, 39.826206];
+  const calc = (lat, lng) => { const [kl, kg] = KA; const q = (toDeg(Math.atan2(Math.sin(toRad(kg - lng)), Math.cos(toRad(lat)) * Math.tan(toRad(kl)) - Math.sin(toRad(lat)) * Math.cos(toRad(kg - lng)))) + 360) % 360;
+    const h = Math.sin(toRad(kl - lat) / 2) ** 2 + Math.cos(toRad(lat)) * Math.cos(toRad(kl)) * Math.sin(toRad(kg - lng) / 2) ** 2; return { q, dist: 2 * 6371.0088 * Math.asin(Math.sqrt(h)) }; };
+  let pos = s.lat != null && s.lat !== '' && Number.isFinite(+s.lat) && Number.isFinite(+s.lng) ? { lat: +s.lat, lng: +s.lng, acc: null, src: 'saved' } : null;
+  let q = pos ? calc(pos.lat, pos.lng).q : 0, decl = 0, smooth = null, gotAny = false, lastBuzz = 0, watch = null, compassOn = false;
+  p.innerHTML = `<div style="text-align:center;margin-top:12px"><div style="font-family:var(--serif);font-size:42px" id="qdeg">${pos ? q.toFixed(1) + '°' : '—'}</div><div class="muted small" id="qsub">${pos ? 'Qibla bearing from true North' : 'Finding your location…'}</div></div>
+    <div class="qb-gps" id="qgps"><span class="qb-dot"></span><span id="qgpsT">Getting a GPS fix…</span><button class="btn sm ghost" id="qRe">${I.compass} Refresh</button></div>
     <div class="compass" id="compass"><div class="phone-arrow"></div><div class="dial" id="dial"><span class="mark n">N</span><span class="mark e">E</span><span class="mark s">S</span><span class="mark w">W</span>
-      <div class="needle" style="transform:rotate(${q}deg)"></div><div class="kaaba" id="kaaba" style="transform:rotate(${q}deg) translateY(-118px) rotate(${-q}deg)">${I.kaaba}</div></div><div class="center"></div></div>
+      <div class="needle" id="needle"></div><div class="kaaba" id="kaaba">${I.kaaba}</div></div><div class="center"></div></div>
     <div style="text-align:center;min-height:48px" id="qstat" class="muted">Tap below, then hold your phone flat.</div>
     <div style="text-align:center;margin-top:6px"><button class="btn accent" id="startC">${I.compass} Use phone compass</button></div>
-    <div class="card soft small muted" style="margin-top:16px">Point the top of your phone (the arrow) toward the Ka‘bah icon. Keep away from metal and magnets, and move your phone in a figure-8 to calibrate. If your phone has no compass, use the bearing above with a physical compass.</div>`;
-  const kaabaR = () => { const r = $('#compass').clientWidth / 2 - 42; $('#kaaba').style.transform = `rotate(${q}deg) translateY(-${r}px) rotate(${-q}deg)`; }; kaabaR();
-  let lastBuzz = 0, smooth = null, gotAny = false;
+    <div class="card soft small muted" style="margin-top:16px">Your exact position comes from GPS, and the compass is corrected from magnetic north to true north for where you are. Hold the phone flat, away from metal, magnets and speakers, and move it in a figure-8 to calibrate. If your phone has no compass, use the bearing above with a physical compass (add the magnetic correction shown).</div>`;
+  const draw = () => {
+    if (!$('#compass')) return;
+    const r = $('#compass').clientWidth / 2 - 42;
+    $('#needle').style.transform = `rotate(${q}deg)`; $('#kaaba').style.transform = `rotate(${q}deg) translateY(-${r}px) rotate(${-q}deg)`;
+    $('#qdeg').textContent = pos ? q.toFixed(1) + '°' : '—';
+    if (pos) { const c = calc(pos.lat, pos.lng); $('#qsub').textContent = `Qibla bearing from true North · ${Math.round(c.dist).toLocaleString()} km to the Ka‘bah`; }
+  };
+  const setGps = (cls, txt) => { const g = $('#qgps'); if (!g) return; g.className = 'qb-gps ' + cls; $('#qgpsT').innerHTML = txt; };
+  const fetchDecl = async () => { try { const r = await api(`/qibla?lat=${pos.lat}&lng=${pos.lng}`); decl = +r.declination || 0; } catch { decl = 0; } };
+  const onFix = async c => {
+    const first = !pos || pos.src !== 'gps';
+    pos = { lat: c.latitude, lng: c.longitude, acc: c.accuracy, src: 'gps' }; q = calc(pos.lat, pos.lng).q; draw();
+    const a = Math.round(c.accuracy || 0);
+    setGps(a <= 50 ? 'ok' : a <= 500 ? 'mid' : 'weak', `GPS ${a <= 50 ? 'locked' : a <= 500 ? 'fix' : 'rough fix'} · ±${a < 1000 ? a + ' m' : (a / 1000).toFixed(1) + ' km'}${decl ? ` · magnetic correction ${decl > 0 ? '+' : ''}${decl.toFixed(1)}°` : ''}`);
+    if (first) { await fetchDecl(); onFix(c); if (!s.lat || Math.abs(s.lat - pos.lat) > 0.05 || Math.abs(s.lng - pos.lng) > 0.05) locate(true).catch(() => {}); }
+  };
+  const startGps = () => {
+    if (!navigator.geolocation) { setGps('weak', pos ? 'GPS unavailable — using your saved city' : 'Location unavailable — set your city in Settings'); return; }
+    if (watch != null) navigator.geolocation.clearWatch(watch);
+    setGps('mid', 'Getting a GPS fix…');
+    watch = navigator.geolocation.watchPosition(x => onFix(x.coords), e => setGps('weak', e.code === 1 ? 'Location permission denied — allow it in your browser settings for an exact Qibla' + (pos ? '. Using your saved city.' : '') : 'Couldn’t get GPS — move near a window' + (pos ? '. Using your saved city.' : '')), { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
+  };
+  draw(); if (pos) fetchDecl().then(draw); startGps();
+  $('#qRe').onclick = () => { vibrate(10); startGps(); };
   const handler = e => {
-    let heading = null;
-    if (typeof e.webkitCompassHeading === 'number') heading = e.webkitCompassHeading;
-    else if (e.absolute && e.alpha != null) heading = (360 - e.alpha) % 360;
+    let heading = null, magnetic = true;
+    if (typeof e.webkitCompassHeading === 'number') heading = e.webkitCompassHeading; // iOS: magnetic
+    else if (e.absolute && e.alpha != null) heading = (360 - e.alpha) % 360; // Android absolute: magnetic north
     if (heading == null) return; gotAny = true;
-    const so = screen.orientation?.angle || window.orientation || 0; heading = (heading + so + 360) % 360;
+    const so = screen.orientation?.angle || window.orientation || 0; heading = (heading + so + (magnetic ? decl : 0) + 360) % 360; // → true north
     smooth = smooth == null ? heading : smooth + ((((heading - smooth) % 360) + 540) % 360 - 180) * 0.25;
     const dial = $('#dial'); if (!dial) return;
     dial.style.transform = `rotate(${-smooth}deg)`;
     const diff = ((q - smooth + 540) % 360) - 180; const ad = Math.abs(diff);
-    $('#compass').classList.toggle('aligned', ad < 4);
-    $('#qstat').innerHTML = ad < 4 ? '<b style="color:var(--green)">You are facing the Qibla</b>' : `Turn ${diff > 0 ? 'right' : 'left'} ${Math.round(ad)}°`;
-    if (ad < 4 && Date.now() - lastBuzz > 1500) { vibrate(40); lastBuzz = Date.now(); }
+    $('#compass').classList.toggle('aligned', ad < 3);
+    $('#qstat').innerHTML = ad < 3 ? '<b style="color:var(--green)">You are facing the Qibla</b>' : `Turn ${diff > 0 ? 'right' : 'left'} ${Math.round(ad)}°`;
+    if (ad < 3 && Date.now() - lastBuzz > 1500) { vibrate(40); lastBuzz = Date.now(); }
   };
-  const stop = () => { window.removeEventListener('deviceorientationabsolute', handler, true); window.removeEventListener('deviceorientation', handler, true); };
+  const stop = () => { window.removeEventListener('deviceorientationabsolute', handler, true); window.removeEventListener('deviceorientation', handler, true); if (watch != null) navigator.geolocation.clearWatch(watch); };
   onCleanup(stop);
   $('#startC').onclick = async () => {
     try { if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') { const r = await DeviceOrientationEvent.requestPermission(); if (r !== 'granted') throw new Error('Compass permission denied'); } }
     catch (e) { toast(e.message || 'Compass permission denied'); return; }
+    if (compassOn) return; compassOn = true;
     if ('ondeviceorientationabsolute' in window) window.addEventListener('deviceorientationabsolute', handler, true); else window.addEventListener('deviceorientation', handler, true);
     $('#startC').classList.add('hidden'); $('#qstat').textContent = 'Reading compass…';
     setTimeout(() => { if (!gotAny && $('#qstat')) $('#qstat').textContent = 'No compass data from this device. Use the bearing above.'; }, 4000);

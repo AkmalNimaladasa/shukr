@@ -2,8 +2,15 @@
 import { $, escAttr, $$, esc, LS, I, api, loadJSON, state, toast, vibrate, shell, bindGo, go, sheet, confirmSheet, md, localDay, dayIndex, every, askAlim, empty, loadingHTML,
   onCleanup, recordAudio, ring, duckNasheed } from './core.js';
 
-const RECITERS = [['ar.alafasy', 'Mishary Alafasy', 128], ['ar.husary', 'Mahmoud Khalil Al-Husary', 128], ['ar.husarymujawwad', 'Al-Husary (Mujawwad)', 128], ['ar.minshawi', 'Al-Minshawi', 128],
-  ['ar.mahermuaiqly', 'Maher Al-Muaiqly', 128], ['ar.abdurrahmaansudais', 'Abdur-Rahman As-Sudais', 64], ['ar.saoodshuraym', 'Saud Ash-Shuraim', 64], ['ar.abdulbasitmurattal', 'Abdul Basit (Murattal)', 64]];
+// Arabic recitation streamed from Quran Foundation's audio CDN (verses.quran.com / quranicaudio mirrors) under the
+// Quran Foundation Developer Terms: commercial/freemium apps may stream if Quran Foundation + the reciter are credited,
+// files are not re-hosted and the text is not modified. (Same approach as Muslim Pro / other Islamic apps: credit + stream.)
+const RECITERS = [['alafasy', 'Mishary Rashid Alafasy', 'https://verses.quran.com/Alafasy/mp3/'], ['husary', 'Mahmoud Khalil Al-Husary', 'https://mirrors.quranicaudio.com/everyayah/Husary_64kbps/'],
+  ['husary-muallim', 'Al-Husary (teaching, slow)', 'https://mirrors.quranicaudio.com/everyayah/Husary_Muallim_128kbps/'], ['minshawi', 'Al-Minshawi (Murattal)', 'https://verses.quran.com/Minshawi/Murattal/mp3/'],
+  ['abdulbasit', 'Abdul Basit (Murattal)', 'https://verses.quran.com/AbdulBaset/Murattal/mp3/'], ['abdulbasit-mj', 'Abdul Basit (Mujawwad)', 'https://verses.quran.com/AbdulBaset/Mujawwad/mp3/'],
+  ['sudais', 'Abdur-Rahman As-Sudais', 'https://verses.quran.com/Sudais/mp3/'], ['shuraym', 'Saud Ash-Shuraim', 'https://verses.quran.com/Shuraym/mp3/'],
+  ['shatri', 'Abu Bakr Al-Shatri', 'https://verses.quran.com/Shatri/mp3/'], ['rifai', 'Hani Ar-Rifai', 'https://verses.quran.com/Rifai/mp3/'],
+  ['english', 'English narration · The Clear Quran (CC BY-ND)', '']];
 export const GEMS = [[18, 'Al-Kahf', 'Light between two Fridays'], [36, 'Ya-Sin', 'The heart of the Quran'], [55, 'Ar-Rahman', 'Which favours will you deny?'], [56, 'Al-Waqi‘ah', 'Read every night'],
   [67, 'Al-Mulk', 'Protection in the grave'], [2, 'Al-Baqarah', 'Shaytan flees the house'], [1, 'Al-Fatihah', 'The Mother of the Book'], [32, 'As-Sajdah', 'Read before sleep'],
   [112, 'Al-Ikhlas', 'Equal to a third of the Quran'], [113, 'Al-Falaq', 'Seeking refuge'], [114, 'An-Nas', 'Seeking refuge'], [73, 'Al-Muzzammil', 'Night prayer'], [48, 'Al-Fath', 'The clear victory'], [19, 'Maryam', 'Story of Maryam'], [12, 'Yusuf', 'The best of stories'], [3, 'Al ‘Imran', 'The family of ‘Imran']];
@@ -20,19 +27,29 @@ function arAyah(s, a, txt) {
 const AR_DIGITS = n => String(n).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
 let globalIdx = null;
 async function ayahGlobal(s, a) { if (!globalIdx) { const m = await QMETA(); globalIdx = [0]; m.surahs.forEach(x => globalIdx.push(globalIdx[globalIdx.length - 1] + x.ayahs)); } return globalIdx[s - 1] + a; }
-const reciter = () => { const id = LS.get('reciter', 'ar.alafasy'); return RECITERS.find(r => r[0] === id) || RECITERS[0]; };
-// Reciter recordings are copyrighted: only available when we hold written permission (server flag), never by default.
-export const recitationOn = () => !!state.flags?.recitation;
-export async function ayahAudioUrl(s, a) { if (!recitationOn()) throw new Error('Recitation audio is coming soon, in sha Allah.'); const r = reciter(); return `https://cdn.islamic.network/quran/audio/${r[2]}/${r[0]}/${await ayahGlobal(s, a)}.mp3`; }
+const reciter = () => { const id = LS.get('reciter2', 'alafasy'); return RECITERS.find(r => r[0] === id) || RECITERS[0]; };
+export const recitationOn = () => reciter()[0] !== 'english';
+export const englishAudio = () => !recitationOn();
+const pad3 = n => String(n).padStart(3, '0');
+export async function ayahAudioUrl(s, a) { const r = reciter(); if (!r[2]) return `/api/quran/en-audio/${s}/${a}`; return r[2] + pad3(s) + pad3(a) + '.mp3'; }
+export const reciterCredit = () => { const r = reciter(); return r[2] ? `${r[1]} · via Quran Foundation` : r[1]; };
 
 // Translations: only public-domain / freely licensed editions. Pickthall (1930, public domain) is bundled.
-export const SAFE_TR = ['en.pickthall'];
+export const SAFE_TR = ['en.pickthall', 'en.clearquran', 'qf:20', 'qf:85', 'qf:22', 'qf:84', 'qf:149'];
+// Quran Foundation translations (streamed via api.quran.com, credited, not re-hosted) — same source Quran.com uses.
+export const QF_TR = { 'qf:20': 'Saheeh International', 'qf:85': 'M.A.S. Abdel Haleem', 'qf:22': 'Abdullah Yusuf Ali', 'qf:84': 'Mufti Taqi Usmani', 'qf:149': 'Fadel Soliman (Bridges)' };
 const trCache = {};
 async function translation(ed, s) {
+  if (ed === 'en.clearquran') { const all = await loadJSON('/data/quran-en-clearquran.json'); return all[s - 1]; }
   if (ed === 'en.pickthall' || !SAFE_TR.includes(ed)) { const all = await loadJSON('/data/quran-en-pickthall.json'); return all[s - 1]; }
   const k = ed + ':' + s; if (trCache[k]) return trCache[k];
   const ls = LS.get('tr.' + k, null); if (ls) return (trCache[k] = ls);
   let arr;
+  if (ed.startsWith('qf:')) {
+    const id = +ed.slice(3); const r = await fetch(`https://api.quran.com/api/v4/quran/translations/${id}?chapter_number=${s}`); if (!r.ok) throw new Error('Translation unavailable — check your connection');
+    const j = await r.json(); arr = (j.translations || []).map(x => String(x.text || '').replace(/<sup[^>]*>.*?<\/sup>/g, '').replace(/<[^>]+>/g, ''));
+    if (!arr.length) throw new Error('Translation unavailable'); trCache[k] = arr; return arr;
+  }
   if (ed.startsWith('fawaz:')) {
     const catalog = await loadJSON('/data/quran-translations.json');
     const entry = catalog.find(t => t.id === ed && t.source === 'fawaz');
@@ -119,18 +136,18 @@ export async function viewSurah(s, startAyah) {
   try { trs = o.showTr ? await translation(o.tr, s) : []; } catch (e) { toast(e.message + ' — showing Pickthall'); trs = await translation('en.pickthall', s); }
   try { if (o.showTr && o.tr2) tr2 = await translation(o.tr2, s); } catch {}
   try { if (o.tajweed) tj = await tajweedText(s); } catch (e) { toast(e.message); }
-  const trList = await loadJSON('/data/quran-translations.json'); const trName = id => 'Marmaduke Pickthall (public domain)';
+  const trList = await loadJSON('/data/quran-translations.json'); const trName = id => id === 'en.clearquran' ? 'The Clear Quran — Dr. Talal Itani (CC BY-ND)' : QF_TR[id] ? `${QF_TR[id]} · Quran data provided by Quran Foundation` : 'Marmaduke Pickthall (public domain)';
   const { bookmarks } = await api('/bookmarks?kind=ayah').catch(() => ({ bookmarks: [] })); const bm = new Set(bookmarks.map(b => b.ref));
   p.innerHTML = `<div style="text-align:center;padding:10px 0 4px"><div class="ar" style="text-align:center;font-size:30px">${esc(sm.ar)}</div><div class="muted small">${esc(sm.en)} · ${sm.ayahs} ayat · ${sm.type}</div>${o.showTr ? `<div class="faint small">${esc(trName(o.tr))}${o.tr2 ? ' + ' + esc(trName(o.tr2)) : ''}</div>` : ''}</div>
-    ${o.tajweed ? `<div class="tj-legend card soft" style="padding:10px 12px"><span class="tj-g">Ghunnah</span><span class="tj-q">Qalqalah</span><span class="tj-f">Ikhfa</span><span class="tj-i">Iqlab</span><span class="tj-a">Idgham</span><span class="tj-m">Madd</span><span class="tj-l">Silent</span></div>` : ''}
+    ${o.tajweed ? `<div class="tj-legend card soft" style="padding:10px 12px"><span class="tj-g">Ghunnah</span><span class="tj-q">Qalqalah</span><span class="tj-f">Ikhfa</span><span class="tj-c">Ikhfa shafawi</span><span class="tj-i">Iqlab</span><span class="tj-a">Idgham (ghunnah)</span><span class="tj-u">Idgham (no ghunnah)</span><span class="tj-w">Idgham shafawi</span><span class="tj-n">Madd 2</span><span class="tj-p">Madd 2/4/6</span><span class="tj-o">Madd 4–5</span><span class="tj-m">Madd 6</span><span class="tj-l">Silent</span></div>` : ''}
     ${s !== 1 && s !== 9 ? `<div class="bismillah">${BISM}</div>` : ''}
     <div id="ayat">${ar.map((t, i) => { const a = i + 1, ref = `${s}:${a}`; return `<div class="ayah" id="a${a}" data-a="${a}"><div class="tools"><span class="num">${ref}</span>
       <button data-play="${a}" aria-label="Play ayah">${I.play}</button><button data-bm="${a}" class="${bm.has(ref) ? 'on' : ''}" aria-label="Bookmark">${bm.has(ref) ? I.saveFill : I.save}</button><button data-more="${a}" aria-label="More">${I.more}</button></div>
-      <div class="ar">${o.tajweed && tj ? tajweedHTML(a === 1 && s !== 1 && s !== 9 && arAyah(s, a, t) !== stripBOM(t) ? tj[i].split(' ').slice(4).join(' ') : tj[i]) : esc(arAyah(s, a, t))} <span class="ayah-end">﴿${AR_DIGITS(a)}﴾</span></div>
+      <div class="ar">${o.tajweed && tj ? tajweedHTML(a === 1 && s !== 1 && s !== 9 && bare(tj[i].replace(/\[[a-z](?::\d+)?\[|\]/g, '').split(' ').slice(0, 4).join(' ')) === bare(BISM) ? tj[i].split(' ').slice(4).join(' ') : tj[i]) : esc(arAyah(s, a, t))} <span class="ayah-end">﴿${AR_DIGITS(a)}﴾</span></div>
       ${o.showTr && trs[i] ? `<div class="tr">${esc(trs[i])}</div>` : ''}${o.showTr && tr2[i] ? `<div class="tr2">${esc(tr2[i])}</div>` : ''}</div>`; }).join('')}</div>
     <div class="row" style="justify-content:space-between;margin:18px 0">${s > 1 ? `<button class="btn ghost sm" data-go="/quran/${s - 1}">${I.back} ${esc(meta.surahs[s - 2].tr)}</button>` : '<span></span>'}${s < 114 ? `<button class="btn ghost sm" data-go="/quran/${s + 1}">${esc(meta.surahs[s].tr)} ${I.fwd}</button>` : ''}</div>
     <div class="player" id="player"><button class="iconbtn" id="pPrev" aria-label="Previous ayah">${I.prev}</button><button class="pbtn" id="pPlay" aria-label="Play">${I.play}</button><button class="iconbtn" id="pNext" aria-label="Next ayah">${I.next}</button>
-      <div class="pinfo"><b id="pTitle">${esc(sm.tr)}</b><span class="faint" id="pSub">${esc(reciter()[1])}</span></div><button class="iconbtn" id="pRep" aria-label="Repeat ayah">${I.repeat}</button></div>`;
+      <div class="pinfo"><b id="pTitle">${esc(sm.tr)}</b><span class="faint" id="pSub">${esc(reciterCredit())}</span></div><button class="iconbtn" id="pRep" aria-label="Repeat ayah">${I.repeat}</button></div>`;
   bindGo(p);
   // ---- auto-tracking: ayah counted when visible ≥ 2.5s, or played ----
   const seen = new Map(), queued = new Set(); let sendT = null;
@@ -154,9 +171,9 @@ export async function viewSurah(s, startAyah) {
     if (a < 1 || a > sm.ayahs) { playing = false; setBtn(); duckNasheed(false); return; }
     cur = a; $$('.ayah.playing', p).forEach(x => x.classList.remove('playing')); const el = $('#a' + a); el?.classList.add('playing'); el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     try { audio.src = await ayahAudioUrl(s, a); } catch (e) { toast(e.message); return; } playing = true; setBtn(); duckNasheed(true);
-    $('#pTitle').textContent = `${sm.tr} ${s}:${a}`; $('#pSub').textContent = reciter()[1];
+    $('#pTitle').textContent = `${sm.tr} ${s}:${a}`; $('#pSub').textContent = reciterCredit();
     try { await audio.play(); } catch (e) { playing = false; setBtn(); toast('Could not play audio — check your connection'); }
-    if ('mediaSession' in navigator) navigator.mediaSession.metadata = new MediaMetadata({ title: `${sm.tr} ${s}:${a}`, artist: reciter()[1], album: 'Quran' });
+    if ('mediaSession' in navigator) navigator.mediaSession.metadata = new MediaMetadata({ title: `${sm.tr} ${s}:${a}`, artist: reciterCredit(), album: 'Quran' });
   }
   audio.onended = () => { mark(cur); if (repeat) playAyah(cur); else playAyah(cur + 1); };
   audio.onerror = () => { if (playing) { toast('Audio unavailable for this reciter — try another'); playing = false; setBtn(); } };
@@ -193,7 +210,7 @@ export function translationGroups(all, query = '', selected = []) {
 }
 function readerOptions(trList, reload) {
   const o = { tr: LS.get('qTr', 'en.pickthall'), tr2: LS.get('qTr2', ''), showTr: LS.get('qShowTr', true), tajweed: LS.get('qTajweed', false) };
-  const all = [{ id: 'en.pickthall', lang: 'English', name: 'Marmaduke Pickthall (public domain)' }];
+  const all = [{ id: 'en.pickthall', lang: 'English', name: 'Marmaduke Pickthall (public domain)' }, { id: 'en.clearquran', lang: 'English', name: 'The Clear Quran — Dr. Talal Itani (CC BY-ND, with audio)' }, ...Object.entries(QF_TR).map(([id, name]) => ({ id, lang: 'English', name: name + ' · via Quran Foundation' }))];
   const opt = (sel, query = '', selected = []) => translationGroups(all, query, selected).map(g => `<optgroup label="${escAttr(g.lang)}">${g.items.map(t => `<option value="${escAttr(t.id)}" ${t.id === sel ? 'selected' : ''}>${esc(t.name)}${t.source === 'fawaz' ? ' · Quran API' : ''}</option>`).join('')}</optgroup>`).join('');
   sheet(`<h3>Reading options</h3>
     <div class="list-item"><div class="grow">Show translation</div><label class="toggle"><input type="checkbox" id="oShow" ${o.showTr ? 'checked' : ''}><span></span></label></div>
@@ -201,7 +218,8 @@ function readerOptions(trList, reload) {
     <label class="lbl" for="oTrSearch">Find a translation</label><input class="input" id="oTrSearch" type="search" placeholder="Search language or translator"><div class="faint small">Grouped by language. Selected editions stay visible. Yusuf Ali is bundled offline; other editions need internet on first load.</div>
     <label class="lbl">Translation (${all.length} available)</label><select class="input" id="oTr">${opt(o.tr)}</select>
     <label class="lbl">Second translation (optional)</label><select class="input" id="oTr2"><option value="">None</option>${opt(o.tr2)}</select>
-    ${recitationOn() ? '' : '<div hidden>'}<label class="lbl">Reciter</label><select class="input" id="oRec">${RECITERS.map(r => `<option value="${r[0]}" ${r[0] === reciter()[0] ? 'selected' : ''}>${r[1]}</option>`).join('')}</select>${recitationOn() ? '' : '</div>'}
+    <label class="lbl">Reciter</label><select class="input" id="oRec">${RECITERS.map(r => `<option value="${r[0]}" ${r[0] === reciter()[0] ? 'selected' : ''}>${esc(r[1])}</option>`).join('')}</select>
+    <div class="faint small" style="margin-top:4px">Recitations streamed from Quran Foundation (quran.com) and credited to each reciter.</div>
     <label class="lbl">Arabic size</label><input type="range" id="oSize" min="20" max="44" value="${state.user.settings.arabicSize || 28}" style="width:100%">
     <button class="btn accent block" id="oApply" style="margin-top:14px">Apply</button>`, (sh, close) => {
     $('#oTrSearch', sh).oninput = e => {
@@ -211,7 +229,7 @@ function readerOptions(trList, reload) {
       $('#oTr', sh).value = first; $('#oTr2', sh).value = second;
     };
     $('#oSize', sh).oninput = e => document.documentElement.style.setProperty('--ar-size', e.target.value + 'px');
-    $('#oApply', sh).onclick = async () => { LS.set('qShowTr', $('#oShow', sh).checked); LS.set('qTajweed', $('#oTj', sh).checked); LS.set('qTr', $('#oTr', sh).value); LS.set('qTr2', $('#oTr2', sh).value); LS.set('reciter', $('#oRec', sh).value);
+    $('#oApply', sh).onclick = async () => { LS.set('qShowTr', $('#oShow', sh).checked); LS.set('qTajweed', $('#oTj', sh).checked); LS.set('qTr', $('#oTr', sh).value); LS.set('qTr2', $('#oTr2', sh).value); LS.set('reciter2', $('#oRec', sh).value);
       const { saveSettings } = await import('./core.js'); saveSettings({ arabicSize: +$('#oSize', sh).value }).catch(() => {}); api('/quran/prefs', { method: 'PUT', body: { translation: $('#oTr', sh).value, reciter: $('#oRec', sh).value } }).catch(() => {}); close(); reload(); };
   });
 }
@@ -270,28 +288,47 @@ export async function viewHifz() {
   const h = await api('/hifz');
   const surahs = Object.entries(h.bySurah).map(([n, v]) => ({ n: +n, ...v })).sort((a, b) => a.n - b.n);
   p.innerHTML = `<div class="card"><div class="row" style="gap:14px">${ring(h.memorised / 6236, 84, 8, h.pctQuran + '%')}<div class="grow"><div style="font-weight:600">${h.memorised.toLocaleString()} ayat memorised</div><div class="muted small">${h.added} in your hifz plan · ${surahs.filter(x => x.memorised === x.total).length} complete surahs</div>
-    <div class="small" style="margin-top:4px">${h.dueCount ? `<b style="color:var(--accent)">${h.dueCount} due for review today</b>` : h.added ? 'No reviews due today — well done' : 'Add a surah to begin'}</div></div></div>
-    <div class="row" style="margin-top:12px">${h.dueCount ? `<button class="btn accent grow" data-go="/hifz/review">${I.retry} Review ${h.dueCount}</button>` : ''}<button class="btn ${h.dueCount ? 'ghost' : 'accent'} grow" id="addH">${I.plus} Add surah</button></div></div>
-    <div class="card soft small muted"><b>How it works:</b> add ayat you are learning. Each day, review due ayat: listen, recite from memory, reveal, and grade yourself. Spaced repetition (SM-2) schedules the next review — ayat become “memorised” after consistent recall over 2+ weeks. You can also test your recitation with the mic.</div>
+    <div class="small" style="margin-top:4px">${h.dueCount ? `<b style="color:var(--accent)">${h.dueCount} due for review today</b>` : h.added ? 'No reviews due today — well done' : 'Add a few ayat or a surah to begin'}</div></div></div>
+    <div class="row" style="margin-top:12px">${h.dueCount ? `<button class="btn accent grow" data-go="/hifz/review">${I.retry} Review ${h.dueCount}</button>` : ''}<button class="btn ${h.dueCount ? 'ghost' : 'accent'} grow" id="addH">${I.plus} Add ayat</button><button class="btn ghost grow" id="addS">${I.plus} Add surah</button></div></div>
+    <div class="card soft small muted"><b>How it works:</b> add a whole surah, or go a few ayat at a time. Each day, review due ayat: listen, recite from memory, reveal, and grade yourself. Spaced repetition (SM-2) schedules the next review — ayat become “memorised” after consistent recall over 2+ weeks. You can also test your recitation with the mic.</div>
     ${surahs.length ? `<h3 style="margin:14px 0 6px;font-size:17px">Your surahs</h3>${surahs.map(x => `<div class="surah-row" data-go="/hifz/surah/${x.n}"><div class="surah-num">${I.ayahStar}<span>${x.n}</span></div><div class="grow"><div style="font-weight:500">${esc(meta.surahs[x.n - 1].tr)}</div><div class="progressbar" style="margin-top:6px"><div style="width:${x.memorised / x.total * 100}%"></div></div><div class="faint small" style="margin-top:3px">${x.memorised}/${x.total} memorised · ${x.added} in plan</div></div>${I.fwd}</div>`).join('')}`
     : empty('brain', 'Start with a short surah like Al‑Ikhlas, Al‑Falaq or An‑Nas — or one you already know.')}
-    <h3 style="margin:16px 0 6px;font-size:17px">Already memorised?</h3><div class="faint small" style="margin-bottom:8px">Mark whole surahs you already know so your tracker is accurate.</div><button class="btn ghost block" id="markKnown">Mark surahs as memorised</button>`;
+    <h3 style="margin:16px 0 6px;font-size:17px">Already memorised?</h3><div class="faint small" style="margin-bottom:8px">Mark ayat or whole surahs you already know so your tracker is accurate.</div><button class="btn ghost block" id="markKnown">Mark as memorised</button>`;
   bindGo(p);
-  const pick = (title, cb) => sheet(`<h3>${title}</h3><select class="input" id="hs">${meta.surahs.map(s => `<option value="${s.n}" ${s.n === 112 ? 'selected' : ''}>${s.n}. ${esc(s.tr)} (${s.ayahs})</option>`).join('')}</select>
-    <div class="grid2" style="margin-top:8px"><div><label class="lbl">From ayah</label><input class="input" id="hf" type="number" value="1" min="1"></div><div><label class="lbl">To ayah</label><input class="input" id="ht" type="number" value="4" min="1"></div></div>
+  const pick = (title, cb, defMode = 'ayat') => sheet(`<h3>${title}</h3>
+    <div class="seg" style="margin-bottom:10px"><button data-hm="surah" class="${defMode === 'surah' ? 'on' : ''}">Whole surah</button><button data-hm="ayat" class="${defMode === 'ayat' ? 'on' : ''}">Specific ayat</button></div>
+    <select class="input" id="hs">${meta.surahs.map(s => `<option value="${s.n}" ${s.n === 112 ? 'selected' : ''}>${s.n}. ${esc(s.tr)} (${s.ayahs})</option>`).join('')}</select>
+    <div id="hRange" class="grid2" style="margin-top:8px"><div><label class="lbl">From ayah</label><input class="input" id="hf" type="number" inputmode="numeric" value="1" min="1"></div><div><label class="lbl">To ayah</label><input class="input" id="ht" type="number" inputmode="numeric" value="1" min="1"></div></div>
+    <div id="hQuick" class="chips" style="margin-top:8px"></div>
+    <div class="faint small" id="hSum" style="margin-top:6px"></div>
     <button class="btn accent block" id="hgo" style="margin-top:14px">Save</button>`, (sh, close) => {
-    const upd = () => { const s = meta.surahs[$('#hs', sh).value - 1]; $('#ht', sh).value = s.ayahs; $('#ht', sh).max = s.ayahs; $('#hf', sh).max = s.ayahs; }; $('#hs', sh).onchange = upd; upd();
-    $('#hgo', sh).onclick = async () => { await cb(+$('#hs', sh).value, +$('#hf', sh).value, +$('#ht', sh).value); close(); viewHifz(); }; });
-  $('#addH').onclick = () => pick('Add to hifz plan', async (s, f, t) => { const r = await api('/hifz/add', { body: { surah: s, from: f, to: t } }); toast(`${r.added} ayat added`); });
+    let mode = defMode;
+    const sum = () => { const s = meta.surahs[$('#hs', sh).value - 1], f = Math.max(1, Math.min(s.ayahs, +$('#hf', sh).value || 1)), t = Math.max(f, Math.min(s.ayahs, +$('#ht', sh).value || f));
+      $('#hSum', sh).textContent = mode === 'surah' ? `All ${s.ayahs} ayat of ${s.tr}` : f === t ? `Ayah ${s.n}:${f}` : `Ayat ${s.n}:${f}–${t} (${t - f + 1} ayat)`; };
+    const quick = () => { const s = meta.surahs[$('#hs', sh).value - 1]; $('#hQuick', sh).innerHTML = mode === 'surah' ? '' : [1, 3, 5, 10].filter(n => n <= s.ayahs).map(n => `<button class="chip sm" data-q="${n}">${n === 1 ? 'Just 1 ayah' : n + ' ayat'}</button>`).join('');
+      $$('[data-q]', sh).forEach(b => b.onclick = () => { $('#ht', sh).value = Math.min(s.ayahs, (+$('#hf', sh).value || 1) + +b.dataset.q - 1); sum(); }); };
+    const setMode = m => { mode = m; $$('[data-hm]', sh).forEach(b => b.classList.toggle('on', b.dataset.hm === m)); $('#hRange', sh).style.display = m === 'surah' ? 'none' : ''; quick(); sum(); };
+    const upd = () => { const s = meta.surahs[$('#hs', sh).value - 1]; $('#ht', sh).max = s.ayahs; $('#hf', sh).max = s.ayahs; $('#hf', sh).value = 1; $('#ht', sh).value = mode === 'surah' ? s.ayahs : Math.min(s.ayahs, 3); quick(); sum(); };
+    $('#hs', sh).onchange = upd; $('#hf', sh).oninput = () => { if (+$('#ht', sh).value < +$('#hf', sh).value) $('#ht', sh).value = $('#hf', sh).value; sum(); }; $('#ht', sh).oninput = sum;
+    $$('[data-hm]', sh).forEach(b => b.onclick = () => setMode(b.dataset.hm)); upd(); setMode(mode);
+    $('#hgo', sh).onclick = async () => { const s = meta.surahs[$('#hs', sh).value - 1]; const f = mode === 'surah' ? 1 : Math.max(1, Math.min(s.ayahs, +$('#hf', sh).value || 1)); const t = mode === 'surah' ? s.ayahs : Math.max(f, Math.min(s.ayahs, +$('#ht', sh).value || f));
+      $('#hgo', sh).disabled = true; await cb(s.n, f, t); close(); viewHifz(); }; });
+  const addFn = async (s, f, t) => { const r = await api('/hifz/add', { body: { surah: s, from: f, to: t } }); toast(r.added ? `${r.added} ayah${r.added === 1 ? '' : 'at'} added` : 'Already in your plan'); };
+  $('#addH').onclick = () => pick('Memorise ayat', addFn, 'ayat');
+  $('#addS').onclick = () => pick('Memorise a whole surah', addFn, 'surah');
   $('#markKnown').onclick = () => pick('Mark as memorised', async (s, f, t) => { await api('/hifz/add', { body: { surah: s, from: f, to: t } }); for (let a = f; a <= t; a++) await api('/hifz/set', { body: { surah: s, ayah: a, status: 'memorised' } }); toast('Marked as memorised'); });
 }
 export async function viewHifzSurah(s) {
   s = +s; const meta = await QMETA(); const sm = meta.surahs[s - 1]; const p = shell(esc(sm.tr), { back: '/hifz' });
   const [h, qar] = await Promise.all([api('/hifz'), loadJSON('/data/quran-ar.json')]); const items = h.items.filter(i => i.surah === s);
   const lbl = { memorised: ['green', 'Memorised'], learning: ['', 'Learning'], needs_review: ['gold', 'Needs review'], new: ['gray', 'New'] };
-  p.innerHTML = `<div class="row" style="margin:8px 0 12px"><button class="btn accent grow" data-go="/hifz/review?s=${s}">${I.retry} Practise this surah</button><button class="btn danger sm" id="rmS">${I.trash}</button></div>
-    ${items.map(i => `<div class="ayah"><div class="tools"><span class="num">${s}:${i.ayah}</span><span class="badge ${lbl[i.status][0]}">${lbl[i.status][1]}</span>${i.due ? `<span class="faint small" style="margin-left:8px">next ${i.due <= localDay() ? 'today' : i.due}</span>` : ''}</div><div class="ar">${esc(arAyah(s, i.ayah, qar[s - 1][i.ayah - 1]))}</div></div>`).join('')}`;
+  const have = new Set(items.map(i => i.ayah)), missing = Array.from({ length: sm.ayahs }, (_, k) => k + 1).filter(a => !have.has(a));
+  p.innerHTML = `<div class="card" style="margin:8px 0 12px"><div class="row between"><b>${items.filter(i => i.status === 'memorised').length}/${sm.ayahs} memorised</b><span class="faint small">${items.length} in plan</span></div><div class="progressbar" style="margin-top:8px"><div style="width:${items.filter(i => i.status === 'memorised').length / sm.ayahs * 100}%"></div></div></div>
+    <div class="row" style="margin:0 0 12px;gap:8px"><button class="btn accent grow" data-go="/hifz/review?s=${s}">${I.retry} Practise</button>${missing.length ? `<button class="btn ghost grow" id="addNext">${I.plus} Next ayah (${s}:${missing[0]})</button>` : ''}<button class="btn danger sm" id="rmS" aria-label="Remove surah">${I.trash}</button></div>
+    ${items.map(i => `<div class="ayah"><div class="tools"><span class="num">${s}:${i.ayah}</span><span class="badge ${lbl[i.status][0]}">${lbl[i.status][1]}</span>${i.due ? `<span class="faint small" style="margin-left:8px">next ${i.due <= localDay() ? 'today' : i.due}</span>` : ''}<button class="iconbtn sm" data-rma="${i.ayah}" aria-label="Remove ayah" style="margin-left:auto">${I.x}</button></div><div class="ar">${esc(arAyah(s, i.ayah, qar[s - 1][i.ayah - 1]))}</div></div>`).join('')}`;
   bindGo(p);
+  const an = $('#addNext'); if (an) an.onclick = async () => { await api('/hifz/add', { body: { surah: s, from: missing[0], to: missing[0] } }); toast(`Added ${s}:${missing[0]}`); viewHifzSurah(s); };
+  $$('[data-rma]', p).forEach(b => b.onclick = async () => { await api(`/hifz/${s}/${b.dataset.rma}`, { method: 'DELETE' }); viewHifzSurah(s); });
   $('#rmS').onclick = async () => { if (await confirmSheet('Remove from hifz?', `Removes ${esc(sm.tr)} and its review history from your hifz plan.`, 'Remove', true)) { await api('/hifz/' + s, { method: 'DELETE' }); go('/hifz'); } };
 }
 export async function viewHifzReview(onlySurah) {
@@ -324,11 +361,11 @@ export async function viewHifzReview(onlySurah) {
 
 // ================= TAJWEED =================
 const RULES = [
-  { k: 'Noon sakinah & tanween', items: [['Izhar', 'Pronounce noon clearly before the throat letters ء ه ع ح غ خ.', 'مِنْ عِلْمٍ'], ['Idgham', 'Merge noon into the next letter if it is one of ي ر م ل و ن (with ghunnah for ي ن م و).', 'مَن يَقُولُ'], ['Iqlab', 'Noon becomes a hidden meem before ب, with ghunnah.', 'مِنۢ بَعْدِ'], ['Ikhfa', 'Hide the noon with ghunnah before the remaining 15 letters.', 'مِن قَبْلِ']] },
-  { k: 'Meem sakinah', items: [['Ikhfa shafawi', 'Hide the meem before ب with ghunnah.', 'تَرْمِيهِم بِحِجَارَةٍ'], ['Idgham shafawi', 'Merge meem into a following meem with ghunnah.', 'لَهُم مَّا'], ['Izhar shafawi', 'Pronounce meem clearly before all other letters.', 'لَهُمْ فِيهَا']] },
-  { k: 'Qalqalah', items: [['Qalqalah', 'An echoing bounce on ق ط ب ج د when they carry sukoon; stronger at the end of an ayah.', 'أَحَدٌ ۝ ٱلصَّمَدُ']] },
-  { k: 'Madd (elongation)', items: [['Madd tabee‘i', 'Natural 2-count elongation on ا و ي.', 'قَالَ'], ['Madd muttasil', 'Madd letter followed by hamzah in the same word: 4–5 counts (obligatory).', 'جَآءَ'], ['Madd munfasil', 'Madd letter at word end, hamzah at the next word: 2–5 counts.', 'إِنَّآ أَنزَلْنَٰهُ'], ['Madd lazim', 'Madd followed by a permanent sukoon/shaddah: 6 counts.', 'ٱلضَّآلِّينَ'], ['Madd ‘arid', 'Stopping on a word after a madd letter: 2, 4 or 6 counts.', 'ٱلْعَٰلَمِينَ']] },
-  { k: 'Ghunnah & others', items: [['Ghunnah', 'Nasal sound of 2 counts on نّ and مّ (with shaddah).', 'إِنَّ'], ['Lam of Allah', 'Heavy (tafkheem) after fatha/damma, light after kasra.', 'قَالَ ٱللَّهُ / بِسْمِ ٱللَّهِ'], ['Ra heavy/light', 'Ra is heavy with fatha/damma, light with kasra.', 'رَبِّ / رِزْقًا']] }
+  { k: 'Noon sakinah & tanween', items: [['Izhar', 'Pronounce noon clearly before the throat letters ء ه ع ح غ خ.', 'مِنْ عِلْمٍ'], ['Idgham', 'Merge noon into the next word’s first letter if it is one of ي ر م ل و ن (يَرْمَلُون): with ghunnah for ي ن م و, without ghunnah for ل ر. Only across two words — inside one word (دُنْيَا، صِنْوَانٌ، قِنْوَانٌ، بُنْيَٰنٌ) the noon is read clearly.', 'مَن يَقُولُ · مِن رَّبِّهِمْ'], ['Iqlab', 'Noon becomes a hidden meem before ب, with ghunnah.', 'مِنۢ بَعْدِ'], ['Ikhfa', 'Hide the noon with ghunnah before the remaining 15 letters.', 'مِن قَبْلِ']] },
+  { k: 'Meem sakinah', items: [['Ikhfa shafawi', 'Hide the meem before ب with ghunnah.', 'تَرْمِيهِم بِحِجَارَةٍ'], ['Idgham shafawi', 'Merge meem into a following meem with ghunnah.', 'لَهُم مَّا'], ['Izhar shafawi', 'Pronounce meem clearly before all other letters — take extra care before و and ف.', 'لَهُمْ فِيهَا · عَلَيْهِمْ وَلَا']] },
+  { k: 'Qalqalah', items: [['Qalqalah sughra', 'An echoing bounce on ق ط ب ج د (قُطْبُ جَدٍّ) when they carry sukoon in the middle of a word.', 'يَقْطَعُونَ · يَجْعَلُونَ'], ['Qalqalah kubra', 'Stronger bounce when you stop on one of these letters at the end of a word or ayah.', 'أَحَدٌ → stopping: أَحَدْ · ٱلْفَلَقِ → ٱلْفَلَقْ']] },
+  { k: 'Madd (elongation)', items: [['Madd tabee‘i', 'Natural 2-count elongation on ا و ي.', 'قَالَ'], ['Madd muttasil', 'Madd letter followed by hamzah in the same word: 4–5 counts (obligatory).', 'جَآءَ'], ['Madd munfasil', 'Madd letter at the end of a word and hamzah at the start of the next: 4 or 5 counts (Ḥafṣ via ash-Shāṭibiyyah).', 'إِنَّآ أَنزَلْنَٰهُ'], ['Madd lazim', 'Madd followed by a permanent sukoon/shaddah: 6 counts.', 'ٱلضَّآلِّينَ'], ['Madd ‘arid lis-sukun', 'Stopping on the last letter after a madd letter: 2, 4 or 6 counts.', 'ٱلْعَٰلَمِينَ → ٱلْعَٰلَمِينْ'], ['Madd badal', 'Hamzah before a madd letter: 2 counts.', 'ءَامَنُوا۟ · إِيمَٰنًا'], ['Madd leen', 'و or ي with sukoon after a fatha, when stopping: 2, 4 or 6 counts.', 'قُرَيْشٍ → قُرَيْشْ · خَوْفٍ → خَوْفْ']] },
+  { k: 'Ghunnah & others', items: [['Ghunnah', 'Nasal sound of 2 counts on نّ and مّ (with shaddah).', 'إِنَّ'], ['Lam of Allah', 'Heavy (tafkheem) after fatha/damma, light after kasra.', 'قَالَ ٱللَّهُ / بِسْمِ ٱللَّهِ'], ['Ra heavy/light', 'Ra is heavy (tafkhim) with fatha or damma and light (tarqiq) with kasra. A sakin ra after a kasra is light: فِرْعَوْنَ.', 'رَبِّ · رُسُلُ / رِزْقًا · فِرْعَوْنَ'], ['Lam shamsiyyah / qamariyyah', 'The ل of ٱلْ is silent before the 14 sun letters (the next letter gets shaddah) and pronounced before the 14 moon letters (ابغ حجك وخف عقيمه).', 'ٱلشَّمْسُ (ash-shams) / ٱلْقَمَرُ (al-qamar)']] }
 ];
 export async function viewTajweed() {
   const p = shell('Tajweed');
@@ -375,7 +412,7 @@ export async function viewTajweedPractice(s, a) {
   p.innerHTML = `<div class="row between" style="margin:6px 0"><button class="iconbtn" data-go="/tajweed/practice?s=${a > 1 ? s : Math.max(1, s - 1)}&a=${a > 1 ? a - 1 : (s > 1 ? meta.surahs[s - 2].ayahs : 1)}" aria-label="Previous">${I.back}</button><div style="text-align:center"><b>${esc(sm.tr)}</b><div class="faint small">${s}:${a}</div></div><button class="iconbtn" data-go="/tajweed/practice?s=${a < sm.ayahs ? s : Math.min(114, s + 1)}&a=${a < sm.ayahs ? a + 1 : 1}" aria-label="Next">${I.fwd}</button></div>
     <div class="card"><div class="ar">${tj ? tajweedHTML(arAyah(s, a, tj)) : esc(arAyah(s, a, qar[s - 1][a - 1]))}</div><div class="tr" style="font-family:var(--serif);margin-top:6px">${esc(tr)}</div>
     <div class="tj-legend" style="margin-top:10px"><span class="tj-g">Ghunnah</span><span class="tj-q">Qalqalah</span><span class="tj-f">Ikhfa</span><span class="tj-i">Iqlab</span><span class="tj-a">Idgham</span><span class="tj-m">Madd</span></div></div>
-    <div style="text-align:center"><button class="btn ghost sm" id="listen">${I.headphones} Listen to ${esc(reciter()[1])}</button></div>
+    <div style="text-align:center"><button class="btn ghost sm" id="listen">${I.headphones} Listen to ${esc(reciterCredit())}</button></div>
     <button class="big-mic" id="rec" aria-label="Record">${I.mic}</button><div style="text-align:center" class="muted small" id="rstat">Tap the mic, recite the ayah, then tap again</div>
     <div id="res" style="margin-top:12px"></div>`;
   bindGo(p);

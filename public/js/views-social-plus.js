@@ -1,8 +1,8 @@
 // Instagram-style stories, notifications, people search, send-to-DM, Jobs, Marketplace.
-import { $, $$, esc, escAttr, I, api, state, shell, go, sheet, toast, onCleanup } from './core.js';
+import { $, $$, esc, escAttr, I, api, state, shell, go, sheet, toast, onCleanup, loadingHTML } from './core.js';
 import { checkout } from './views-money.js';
 
-const av = (x, cls = '') => `<span class="sx-av ${cls}">${x?.avatar ? `<img src="${escAttr(x.avatar)}" alt="">` : esc(((x?.name || x?.username || '?')[0] || '?').toUpperCase())}</span>`;
+const av = (x, cls = '') => `<span class="sx-av ${cls}">${x?.avatar ? `<img src="${escAttr(x.avatar)}" alt="" loading="lazy" decoding="async">` : esc(((x?.name || x?.username || '?')[0] || '?').toUpperCase())}</span>`;
 const ago = t => { const s = (Date.now() - new Date(t)) / 1000; return s < 60 ? 'now' : s < 3600 ? Math.floor(s / 60) + 'm' : s < 86400 ? Math.floor(s / 3600) + 'h' : s < 604800 ? Math.floor(s / 86400) + 'd' : Math.floor(s / 604800) + 'w'; };
 const money = (n, c = 'USD') => { try { return new Intl.NumberFormat(undefined, { style: 'currency', currency: c, maximumFractionDigits: n % 1 ? 2 : 0 }).format(n); } catch { return c + ' ' + n; } };
 async function uploadFile(f) { const r = await fetch('/api/social/media', { method: 'POST', headers: { 'Content-Type': f.type }, body: f, credentials: 'same-origin' }); const j = await r.json(); if (!r.ok) throw new Error(j.error || 'Upload failed'); return j.media; }
@@ -24,11 +24,13 @@ export async function openStories(usernames, startIdx = 0, onDone) {
   const ov = document.createElement('div'); ov.className = 'sv'; document.body.append(ov); document.documentElement.classList.add('sv-open');
   const close = () => { clearTimeout(timer); cancelAnimationFrame(raf); ov.remove(); document.documentElement.classList.remove('sv-open'); onDone && onDone(); };
   let raf = 0;
+  const viewersCache = new Map();
+  const fetchViewers = id => api(`/stories/${encodeURIComponent(id)}/viewers`).then(r => { viewersCache.set(id, r); return r; });
   const load = async i => { ui = i; if (ui < 0 || ui >= usernames.length) return close(); try { g = (await api('/stories/user/' + encodeURIComponent(usernames[ui]))).group; } catch { g = null; } if (!g) return load(ui + 1); si = Math.max(0, g.stories.findIndex(s => !s.seen)); if (si < 0) si = 0; show(); };
-  const tick = () => { if (!paused) { const p = Math.min(1, (elapsed + performance.now() - t0) / dur); const bar = $('.sv-bars i.on b', ov); if (bar) bar.style.width = p * 100 + '%'; if (p >= 1) return next(); } raf = requestAnimationFrame(tick); };
+  let barEl = null; const tick = () => { if (!paused) { const p = Math.min(1, (elapsed + performance.now() - t0) / dur); if (!barEl || !barEl.isConnected) barEl = $('.sv-bars i.on b', ov); if (barEl) barEl.style.transform = `scaleX(${p})`; if (p >= 1) return next(); } raf = paused ? 0 : requestAnimationFrame(tick); };
   const next = () => { cancelAnimationFrame(raf); if (si < g.stories.length - 1) { si++; show(); } else load(ui + 1); };
   const prev = () => { cancelAnimationFrame(raf); if (si > 0) { si--; show(); } else if (ui > 0) load(ui - 1); else show(); };
-  const pause = on => { if (on === paused) return; paused = on; const v = $('video', ov); if (on) { elapsed += performance.now() - t0; v?.pause(); } else { t0 = performance.now(); v?.play().catch(() => {}); } };
+  const pause = on => { if (on === paused) return; paused = on; const v = $('video', ov); if (on) { elapsed += performance.now() - t0; v?.pause(); cancelAnimationFrame(raf); raf = 0; } else { t0 = performance.now(); v?.play().catch(() => {}); if (!raf) raf = requestAnimationFrame(tick); } };
   function show() {
     cancelAnimationFrame(raf); const s = g.stories[si], m = s.media || {}, mine = g.userId === state.user?.id;
     const src = m.src || m.slides?.[0]?.src, isVid = s.format === 'reel' || /\.(mp4|webm|mov)$/.test(src || '');
@@ -44,6 +46,8 @@ export async function openStories(usernames, startIdx = 0, onDone) {
     const v = $('video', ov); if (v) { dur = 15000; v.onloadedmetadata = () => { dur = Math.min(60000, (v.duration || 15) * 1000); }; v.play().catch(() => { v.muted = true; state.svMuted = true; v.play().catch(() => {}); }); }
     else dur = 5000;
     raf = requestAnimationFrame(tick);
+    if (mine) { const vb = $('[data-sv=viewers]', ov), lab = r => { if (vb && vb.isConnected) vb.innerHTML = `${I.eye || ''} ${r.viewers.length} viewer${r.viewers.length === 1 ? '' : 's'}`; };
+      const c = viewersCache.get(s.id); if (c) lab(c); fetchViewers(s.id).then(lab).catch(() => {}); }
     $('.sv-tap.l', ov).onclick = prev; $('.sv-tap.r', ov).onclick = next;
     const card = $('.sv-card', ov); let hold, sy = 0;
     card.onpointerdown = e => { sy = e.clientY; if (e.target.closest('input,button')) return; hold = setTimeout(() => pause(true), 180); };
@@ -53,7 +57,16 @@ export async function openStories(usernames, startIdx = 0, onDone) {
       if (k === 'close') close();
       if (k === 'mute') { const v = $('video', ov); v.muted = !v.muted; state.svMuted = v.muted; }
       if (k === 'del') { await api('/stories/' + encodeURIComponent(s.id), { method: 'DELETE' }); toast('Story deleted'); g.stories.splice(si, 1); if (!g.stories.length) close(); else { si = Math.min(si, g.stories.length - 1); show(); } }
-      if (k === 'viewers') { pause(true); const r = await api(`/stories/${encodeURIComponent(s.id)}/viewers`); sheet(`<h3>${r.viewers.length} viewer${r.viewers.length === 1 ? '' : 's'}</h3>${r.viewers.map(x => `<div class="sx-row">${av(x)}<span class="grow"><b>${esc(x.username || x.name)}</b></span>${x.reaction || ''}</div>`).join('') || '<p class="muted">No views yet.</p>'}`); }
+      if (k === 'viewers') { pause(true);
+        // Open instantly (cached list if we have it), fill in when the request lands, resume the story when the sheet closes.
+        const paint = (sh, r) => { const h = $('h3', sh); if (!h) return; h.textContent = r ? `${r.viewers.length} viewer${r.viewers.length === 1 ? '' : 's'}` : 'Viewers';
+          $('.svv-list', sh).innerHTML = !r ? loadingHTML() : r.viewers.length ? r.viewers.slice(0, 300).map(x => `<a class="sx-row" href="#/u/${encodeURIComponent(x.username || '')}">${av(x)}<span class="grow"><b>${esc(x.username || x.name)}</b><small>${ago(x.created_at)}</small></span>${x.reaction ? `<span class="svv-rx">${esc(x.reaction)}</span>` : ''}</a>`).join('') : '<p class="muted">No views yet.</p>'; };
+        sheet(`<h3>Viewers</h3><div class="svv-list"></div>`, (sh, closeSh) => {
+          paint(sh, viewersCache.get(s.id));
+          const gone = new MutationObserver(() => { if (!sh.isConnected) { gone.disconnect(); if (ov.isConnected) pause(false); } }); gone.observe(document.body, { childList: true });
+          $$('a.sx-row', sh).forEach(a => a.onclick = () => { closeSh(); close(); });
+          fetchViewers(s.id).then(r => { if (sh.isConnected) { paint(sh, r); $$('a.sx-row', sh).forEach(a => a.onclick = () => { closeSh(); close(); }); } }).catch(e => { if (sh.isConnected) $('.svv-list', sh).innerHTML = `<p class="muted">${esc(e.message)}</p>`; });
+        }); }
       if (k === 'send') { pause(true); sendToSheet(s.id); }
     });
     const inp = $('.sv-reply', ov); if (inp) { inp.onfocus = () => pause(true); inp.onblur = () => { if (!inp.value) pause(false); };

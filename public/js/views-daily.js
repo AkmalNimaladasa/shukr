@@ -78,8 +78,8 @@ function installCard(el) {
   const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
   if (standalone || LS.get('hideInstall', false) || !el) return;
   const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  el.innerHTML = `<div class="card"><div class="install-banner">${I.install}<div class="grow"><div style="font-weight:600">Install Shukr</div><div class="muted small">${ios ? 'In Safari tap <b>Share</b> → <b>Add to Home Screen</b>.' : 'Add it to your home screen — no app store needed.'}</div></div>${!ios && state.deferredPrompt ? '<button class="btn accent sm" id="instBtn">Install</button>' : ''}<button class="iconbtn sm" id="instX" aria-label="Dismiss">${I.x}</button></div></div>`;
-  $('#instBtn')?.addEventListener('click', async () => { state.deferredPrompt.prompt(); await state.deferredPrompt.userChoice; state.deferredPrompt = null; el.innerHTML = ''; });
+  el.innerHTML = `<div class="card"><div class="install-banner">${I.install}<div class="grow"><div style="font-weight:600">Install Shukr</div><div class="muted small">${ios ? 'In Safari tap <b>Share</b> → <b>Add to Home Screen</b>.' : 'Add it to your home screen — no app store needed.'}</div></div><button class="btn accent sm" id="instBtn">Install</button><button class="iconbtn sm" id="instX" aria-label="Dismiss">${I.x}</button></div></div>`;
+  $('#instBtn')?.addEventListener('click', () => window.shukrInstall?.());
   $('#instX').onclick = () => { LS.set('hideInstall', true); el.innerHTML = ''; };
 }
 
@@ -327,14 +327,18 @@ export async function viewAkhirah() {
   function draw() {
     const items = ak.items.filter(i => topic === 'all' || i.topic === topic);
     const today = ak.items[dayIndex(ak.items.length, 3)];
+    // Pair today's reflection with an authentic hadith on the same topic (or an ayah if today's item is a hadith).
+    const pool = ak.items.filter(i => i.topic === today.topic && i.type !== today.type && i.en);
+    const pair = pool.length ? pool[dayIndex(pool.length, 7)] : null;
     p.innerHTML = `<div class="sub" style="margin-top:10px">“Remember often the destroyer of pleasures — death.” <span class="faint">(Ibn Majah 4258)</span> Reflections on the grave, the Day of Judgement, the Sirat, Jannah and Jahannam — from the Quran and authentic Sunnah.</div>
       <div class="card" style="border-color:var(--accent-2)"><div class="faint small">Today’s reflection · ${esc(ak.topics[today.topic])}</div>${today.ar ? `<div class="ar" style="margin-top:6px">${esc(today.ar)}</div>` : ''}<div style="font-family:var(--serif);font-size:17px;margin-top:6px;line-height:1.6">${esc(today.en)}</div><div class="ref small" style="color:var(--accent);font-weight:600;margin-top:8px">${esc(today.ref)}</div>
+        ${pair ? `<div class="ak-pair"><div class="faint small">${pair.type === 'quran' ? 'From the Qur’an' : 'From the Sunnah'}</div>${pair.ar ? `<div class="ar" style="margin-top:6px">${esc(pair.ar)}</div>` : ''}<div style="font-family:var(--serif);font-size:16px;margin-top:6px;line-height:1.6">${esc(pair.en)}</div><div class="ref small" style="color:var(--accent);font-weight:600;margin-top:6px">${esc(pair.ref)}</div></div>` : ''}
         <button class="btn soft sm" style="margin-top:10px" id="reflect">Reflect with Alim</button></div>
       <div class="chips">${[['all', 'All'], ...Object.entries(ak.topics)].map(([k, l]) => `<button class="chip ${topic === k ? 'on' : ''}" data-t="${k}">${k !== 'all' ? I[ic[k]] : ''}${esc(l)}</button>`).join('')}</div>
       ${items.map(i => `<div class="ak-card"><div class="row small faint" style="gap:6px"><span style="width:16px;height:16px;color:var(--accent)">${I[ic[i.topic]]}</span>${esc(ak.topics[i.topic])} · ${i.type === 'quran' ? 'Quran' : 'Hadith'}</div>${i.ar ? `<div class="ar" style="margin-top:6px">${esc(i.ar)}</div>` : ''}<div style="font-family:var(--serif);font-size:16px;line-height:1.6;margin-top:6px">${esc(i.en)}</div><div class="ref">${esc(i.ref)}</div></div>`).join('')}
-      <div class="card soft small muted">Reminders arrive as notifications at the times you choose in <a href="#/settings">Settings → Reminders</a>. Hadith wording is paraphrased from the cited collections (sunnah.com numbering).</div>`;
+      <div class="card soft small muted">Reminders arrive as notifications at the times you choose in <a href="#/settings">Settings → Reminders</a>. Hadith wording is a faithful English rendering of the cited collections (sunnah.com numbering).</div>`;
     $$('[data-t]', p).forEach(b => b.onclick = () => { topic = b.dataset.t; draw(); });
-    $('#reflect').onclick = () => askAlim(`Help me reflect on this reminder and how it should change my day: "${today.en}" (${today.ref})`, 'reflect');
+    $('#reflect').onclick = () => askAlim(`Help me reflect on this reminder and how it should change my day: "${today.en}" (${today.ref})${pair ? ` and "${pair.en}" (${pair.ref})` : ''}`, 'reflect');
   }
   draw();
 }

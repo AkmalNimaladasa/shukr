@@ -1,0 +1,60 @@
+{
+  "dua": {
+    "ar": "اللَّهُمَّ إِنِّي أَسْأَلُكَ عِلْمًا نَافِعًا، وَرِزْقًا طَيِّبًا، وَعَمَلًا مُتَقَبَّلًا",
+    "tr": "Allahumma inni as'aluka 'ilman nafi'an, wa rizqan tayyiban, wa 'amalan mutaqabbalan",
+    "en": "O Allah, I ask You for knowledge that benefits, provision that is good and pure, and deeds that are accepted.",
+    "note": "The Prophet ﷺ would say this after the Fajr prayer. A beautiful way to begin each working day.",
+    "ref": "Sunan Ibn Majah 925"
+  },
+  "sections": [
+    {
+      "id": "wealth", "title": "Wealth & rizq", "icon": "coin", "tone": "gold",
+      "items": [
+        { "id": "istighfar", "icon": "leaf", "title": "Seek forgiveness (istighfar)", "text": "Nuh told his people that asking Allah's forgiveness brings rain, wealth, children and gardens. Make it a daily habit.", "ref": "Quran 71:10-12", "go": "/istighfar" },
+        { "id": "shukr", "icon": "heart", "title": "Thank Allah for what you have", "text": "Allah promises more to those who are grateful. Name three blessings out loud or in your journal.", "ref": "Quran 14:7", "go": "/journal" },
+        { "id": "taqwa", "icon": "shield", "title": "Guard your taqwa", "text": "Whoever is mindful of Allah, He makes a way out for them and provides from where they never expected.", "ref": "Quran 65:2-3" },
+        { "id": "tawakkul", "icon": "hands", "title": "Work hard, then rely on Allah", "text": "Birds leave their nests hungry in the morning and return full. Do your part and trust Him with the outcome.", "ref": "Jami' at-Tirmidhi 2344" },
+        { "id": "tahajjud", "icon": "moon", "title": "A few rak'ahs of tahajjud", "text": "The best prayer after the obligatory ones is the night prayer. Even two short rak'ahs before Fajr count.", "ref": "Sahih Muslim 1163" },
+        { "id": "family-ties", "icon": "users", "title": "Keep family ties", "text": "Whoever wants their provision widened and life extended should keep in touch with relatives. A call or message is a start.", "ref": "Sahih al-Bukhari 5986" },
+        { "id": "charity", "icon": "gift", "title": "Give some charity", "text": "Charity never decreases wealth. Even a small coin or a kind act counts as sadaqah today.", "ref": "Sahih Muslim 2588" },
+        { "id": "early", "icon": "sun", "title": "Start work early in the morning", "text": "The Prophet ﷺ prayed for blessing in his ummah's early mornings. Use the fresh hours after Fajr for your most important task.", "ref": "Sunan Abu Dawud 2606; Jami' at-Tirmidhi 1212" },
+        { "id": "honest-trade", "icon": "scale", "title": "Be honest in every deal", "text": "When buyer and seller are truthful and clear, their deal is blessed; hiding faults wipes the blessing away.", "ref": "Sahih al-Bukhari 2079" },
+        { "id": "hajj-umrah", "icon": "kaaba", "title": "Plan or save for Hajj & Umrah", "text": "Following Hajj with Umrah removes poverty and sins as a furnace removes impurity. Set aside a little towards it.", "ref": "Jami' at-Tirmidhi 810" },
+        { "id": "spend-family", "icon": "home", "title": "Spend on your family with good intention", "text": "Money spent on your family carries great reward when done for Allah's sake. Even a meal you share is charity.", "ref": "Sahih Muslim 995" },
+        { "id": "salah-time", "icon": "clock", "title": "Pray each salah on time", "text": "Prayer at its proper time is among the deeds Allah loves most. Let your work fit around salah, not the other way round.", "ref": "Sahih al-Bukhari 527; Quran 20:132", "go": "/prayer" }
+      ]
+    },
+    {
+      "id": "time", "title": "Time & day", "icon": "hourglass", "tone": "violet",
+      "items": [
+        { "id": "morning-adhkar", "icon": "sun", "title": "Morning & evening adhkar", "text": "Remember Allah often and glorify Him morning and evening. A few minutes that set the tone for the whole day.", "ref": "Quran 33:41-42", "go": "/adhkar" },
+        { "id": "quran-daily", "icon": "quran", "title": "Read some Quran", "text": "Those who recite the Book and pray hope for a trade that will never fail. One page a day adds up.", "ref": "Quran 35:29-30", "go": "/quran" },
+        { "id": "consistent", "icon": "target", "title": "One small deed, done consistently", "text": "The deeds most loved by Allah are the regular ones, even if small. Pick one and keep it going today.", "ref": "Sahih al-Bukhari 6464" },
+        { "id": "account-time", "icon": "clock", "title": "Use your time with purpose", "text": "Each of us will be asked how we spent our life. Before scrolling, ask: is this how I want to spend it?", "ref": "Jami' at-Tirmidhi 2417" },
+        { "id": "sleep-early", "icon": "moon", "title": "Sleep soon after Isha", "text": "The Prophet ﷺ disliked chatting late after Isha. An early night makes Fajr and the blessed morning easier.", "ref": "Sahih al-Bukhari 568" }
+      ]
+    },
+    {
+      "id": "home", "title": "Home & family", "icon": "home", "tone": "teal",
+      "items": [
+        { "id": "salam-enter", "icon": "chat", "title": "Say salam when entering home", "text": "Greet your household with a greeting of peace from Allah, blessed and good, even if the house seems empty.", "ref": "Quran 24:61" },
+        { "id": "bismillah-home", "icon": "lock", "title": "Mention Allah entering and eating", "text": "When Allah is remembered on entering and at meals, Shaytan finds no place to stay or eat in your home.", "ref": "Sahih Muslim 2018" },
+        { "id": "baqarah", "icon": "book", "title": "Recite Surah al-Baqarah at home", "text": "Shaytan flees from a house in which Surah al-Baqarah is recited. Read or play part of it today.", "ref": "Sahih Muslim 780", "go": "/quran/2" },
+        { "id": "eat-together", "icon": "users", "title": "Share a meal together", "text": "Food for one is enough for two, and food for two is enough for four. Sharing multiplies what you have.", "ref": "Sahih Muslim 2059" },
+        { "id": "best-to-family", "icon": "heart", "title": "Be at your best with your family", "text": "The best of you are those who are best to their families. Help with a chore, as the Prophet ﷺ did at home.", "ref": "Jami' at-Tirmidhi 3895; Sahih al-Bukhari 676" },
+        { "id": "pray-home", "icon": "mosque", "title": "Pray a voluntary prayer at home", "text": "Pray some of your prayers in your houses and do not turn them into graves. It fills the home with light.", "ref": "Sahih al-Bukhari 432" }
+      ]
+    },
+    {
+      "id": "health", "title": "Health", "icon": "leaf", "tone": "green",
+      "items": [
+        { "id": "eat-moderate", "icon": "scale", "title": "Eat in moderation", "text": "A third for food, a third for drink, a third for air. Stop before you feel full.", "ref": "Jami' at-Tirmidhi 2380" },
+        { "id": "food-barakah", "icon": "sparkle", "title": "Don't waste food", "text": "Finish what is on your plate and lick your fingers, for you do not know which part holds the blessing.", "ref": "Sahih Muslim 2033" },
+        { "id": "strong", "icon": "flame", "title": "Move your body", "text": "The strong believer is better and more beloved to Allah than the weak, though there is good in both. A walk counts.", "ref": "Sahih Muslim 2664" },
+        { "id": "health-time", "icon": "hourglass", "title": "Value health and free time", "text": "Many people lose out on two blessings: health and free time. Use today's energy for something good.", "ref": "Sahih al-Bukhari 6412" },
+        { "id": "siwak", "icon": "check", "title": "Use the siwak / brush your teeth", "text": "The Prophet ﷺ was so keen on siwak that he would have commanded it before every prayer if not for hardship.", "ref": "Sahih al-Bukhari 887" },
+        { "id": "sleep-wudu", "icon": "moon", "title": "Sleep with wudu on your right side", "text": "Make wudu before bed, lie on your right side and say the bedtime dua. Rest becomes worship.", "ref": "Sahih al-Bukhari 247" }
+      ]
+    }
+  ]
+}

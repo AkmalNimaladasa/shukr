@@ -1,0 +1,34 @@
+{
+  "daily": [
+    { "id": "rawatib", "t": "12 rak‘at of sunnah rawatib", "b": "A house is built for you in Paradise for praying them every day.", "ref": "Sahih Muslim 728", "ic": "mosque" },
+    { "id": "adhkar", "t": "Morning & evening adhkar", "b": "Remembering Allah at both ends of the day keeps the heart guarded.", "ref": "Quran 33:41-42", "ic": "sun" },
+    { "id": "duha", "t": "Duha prayer", "b": "Two rak‘at in the forenoon count as charity for every joint of your body.", "ref": "Sahih Muslim 720", "ic": "sun" },
+    { "id": "witr", "t": "Witr prayer", "b": "Close your night prayer with an odd number of rak‘at.", "ref": "Sahih al-Bukhari 998", "ic": "moon" },
+    { "id": "miswak", "t": "Use the miswak", "b": "The Prophet ﷺ loved it so much he nearly made it a command before every prayer.", "ref": "Sahih al-Bukhari 887", "ic": "sparkle" },
+    { "id": "quran", "t": "Read some Quran", "b": "It will come on the Day of Resurrection to intercede for its companions.", "ref": "Sahih Muslim 804", "ic": "quran" },
+    { "id": "rightside", "t": "Sleep on your right side with wudu", "b": "Go to bed pure and rest on your right side, as the Prophet ﷺ taught.", "ref": "Sahih al-Bukhari 247", "ic": "moon" },
+    { "id": "sleepdua", "t": "Dua before sleeping", "b": "“Bismika Allahumma amutu wa ahya” — in Your name, O Allah, I die and I live.", "ref": "Sahih al-Bukhari 6324", "ic": "dua" },
+    { "id": "bismillah", "t": "Say bismillah before eating", "b": "Begin every meal with Allah's name so it is blessed.", "ref": "Sahih al-Bukhari 5376", "ic": "leaf" },
+    { "id": "righthand", "t": "Eat & drink with your right hand", "b": "A simple daily habit the Prophet ﷺ taught even to children.", "ref": "Sahih al-Bukhari 5376; Sahih Muslim 2020", "ic": "hands" },
+    { "id": "salam", "t": "Greet with salam", "b": "Spreading salam builds the love that completes faith.", "ref": "Sahih Muslim 54", "ic": "chat" },
+    { "id": "smile", "t": "Smile at someone", "b": "A smile in your brother's face is written as charity.", "ref": "Jami‘ at-Tirmidhi 1956", "ic": "smile" },
+    { "id": "kursi", "t": "Ayat al-Kursi after each salah", "b": "Nothing but death stands between its reciter and Paradise.", "ref": "an-Nasa'i, as-Sunan al-Kubra 9928", "ic": "star" },
+    { "id": "quls", "t": "The 3 Quls before sleep", "b": "Recite Ikhlas, Falaq and Nas into your palms and wipe over your body.", "ref": "Sahih al-Bukhari 5017", "ic": "shield" },
+    { "id": "tahajjud", "t": "Tahajjud (night prayer)", "b": "The best prayer after the obligatory ones is the prayer at night.", "ref": "Sahih Muslim 1163", "ic": "moon" }
+  ],
+  "weekly": [
+    { "id": "monthu", "t": "Fast Monday & Thursday", "b": "Deeds are presented to Allah on these days — let yours be shown while fasting.", "ref": "Jami‘ at-Tirmidhi 747", "ic": "fast", "target": 2 },
+    { "id": "kahf", "t": "Surah al-Kahf on Friday", "b": "A light that shines for you between the two Fridays.", "ref": "Reported by al-Hakim and al-Bayhaqi", "ic": "quran" },
+    { "id": "ghusl", "t": "Ghusl on Friday", "b": "Come to Jumu‘ah fresh and clean, as the Prophet ﷺ instructed.", "ref": "Sahih al-Bukhari 877", "ic": "sparkle" },
+    { "id": "salawat", "t": "Extra salawat on Friday", "b": "Your blessings on the Prophet ﷺ are presented to him — send many on Friday.", "ref": "Sunan Abi Dawud 1047", "ic": "heart" },
+    { "id": "sick", "t": "Visit someone who is ill", "b": "Whoever visits the sick is walking among the harvest of Paradise.", "ref": "Sahih Muslim 2568", "ic": "users" },
+    { "id": "charity", "t": "Give some charity", "b": "Charity never decreases wealth.", "ref": "Sahih Muslim 2588", "ic": "gift" }
+  ],
+  "monthly": [
+    { "id": "whitedays", "t": "Fast the white days (13, 14, 15)", "b": "Three days each month — like fasting the whole month in reward.", "ref": "Jami‘ at-Tirmidhi 761", "ic": "moon", "target": 3 },
+    { "id": "graves", "t": "Visit graves / remember death", "b": "Visiting graves softens the heart and reminds you of the Hereafter.", "ref": "Sahih Muslim 976", "ic": "hourglass" },
+    { "id": "rahim", "t": "Visit family (silat al-rahim)", "b": "Keeping family ties brings wider provision and a longer, blessed life.", "ref": "Sahih al-Bukhari 5986", "ic": "home" },
+    { "id": "khatm", "t": "Reach your Quran target this month", "b": "A full khatm or your own juz goal — the Prophet ﷺ advised finishing it in a month.", "ref": "Sahih al-Bukhari 5054", "ic": "book" },
+    { "id": "nights", "t": "Pray tahajjud on 4 nights", "b": "Extra prayer at night may raise you to a praised station.", "ref": "Quran 17:79", "ic": "moon", "target": 4 }
+  ]
+}

@@ -92,6 +92,8 @@ export const I = {
   users: S('<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.2a5 5 0 0 1 6 4.8"/>'),
   pin: S('<path d="M12 21s-7-6.2-7-12a7 7 0 0 1 14 0c0 5.8-7 12-7 12Z"/><circle cx="12" cy="9" r="2.5"/>'),
   mosque: S('<path d="M3 21h18M5 21v-8h14v8M12 3c-3 2-5 4-5 7h10c0-3-2-5-5-7Z"/><path d="M12 1v2M10 21v-4a2 2 0 0 1 4 0v4M2 21V10M22 21V10"/>'),
+  shuffle: S('<path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>'),
+  play2: S('<path d="m7 4 13 8-13 8Z"/>'),
   headphones: S('<path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1v-6h3v4ZM3 19a2 2 0 0 0 2 2h1v-6H3v4Z"/>'),
   hourglass: S('<path d="M5 2h14M5 22h14M7 2v4a5 5 0 0 0 10 0V2M7 22v-4a5 5 0 0 1 10 0v4"/>'),
   flame: S('<path d="M12 22c4 0 7-3 7-7 0-4-3-6-4-10-1 2-2 3-3 3-.5-2-1-3-2-4-1 4-5 6-5 11 0 4 3 7 7 7Z"/>'),
@@ -220,20 +222,38 @@ export function md(src) {
 }
 
 // ---------- Sections / navigation ----------
-export const SECTIONS = [
-  { group: '', items: [['/fyp', 'For You', 'play'], ['/profile', 'My profile', 'user'], ['/premium', 'Premium', 'star'], ['/creator/quests', 'Creator Quests', 'flame'], ['/university', 'Creator University', 'cap'], ['/creator', 'Creator earnings', 'chart'], ['/advertise', 'Advertise', 'send']] },
-  { group: 'Daily', items: [['/today', 'Today', 'home'], ['/chat/new', 'Alim', 'khatam', 'alim'], ['/habits', 'Habits', 'check', 'habits'], ['/journal', 'Gratitude journal', 'book', 'journal'], ['/blessings', 'Blessings', 'gem', 'blessings']] },
-  { group: 'Worship', items: [['/prayer', 'Prayer times', 'clock', 'prayer'], ['/dhikr', 'Dhikr counter', 'beads', 'dhikr'], ['/adhkar', 'Adhkar & duas', 'moon', 'adhkar'], ['/qibla', 'Qibla', 'compass', 'qibla'], ['/calendar', 'Calendar', 'cal', 'calendar'], ['/fasting', 'Fasting', 'fast', 'fasting']] },
-  { group: 'Knowledge', items: [['/quran', 'Quran', 'quran', 'quran'], ['/hadith', 'Hadith', 'scroll', 'hadith'], ['/hifz', 'Hifz', 'brain', 'hifz'], ['/tajweed', 'Tajweed', 'mic', 'tajweed'], ['/learn', 'Learn', 'cap', 'learn'], ['/audiobooks', 'Audiobooks', 'headphones', 'audiobooks'], ['/names', '99 Names', 'star', 'names']] },
-  { group: 'Earn $', items: [['/earn', 'Earn', 'dollar'], ['/referrals', 'Refer & earn', 'gift'], ['/wallet', 'Wallet', 'wallet'], ['/freelance', 'Freelance', 'briefcase'], ['/market', 'Marketplace', 'bag'], ['/jobs', 'Jobs', 'briefcase'], ['/audio', 'Audio · nasheeds', 'mic']] },
+const SECTIONS_ALL = [
+  { group: '', items: [['/new-to-islam', 'New to Islam?', 'info', 'newislam'], ['/fyp', 'For You', 'play'], ['/profile', 'My profile', 'user'], ['/quests', 'Daily quests & league', 'star', 'quests'], ['/achievements', 'Streaks & rewards', 'gift'], ['/premium', 'Premium', 'star']] },
+  { group: 'Creators', items: [['/creator/analytics', 'Creator analytics', 'chart'], ['/creator/quests', 'Creator Quests', 'flame'], ['/university', 'Creator University', 'cap'], ['/creator', 'Creator earnings', 'dollar'], ['/advertise', 'Advertise', 'send']] },
+  { group: 'Daily', items: [['/today', 'Today', 'home'], ['/chat/new', 'Alim', 'khatam', 'alim'], ['/sunnah', 'Sunnah tracker', 'check', 'sunnah'], ['/challenges', 'Challenges & leaderboard', 'flame', 'challenges'], ['/habits', 'Habit tracker', 'check', 'habits'], ['/journal', 'Gratitude journal', 'book', 'journal'], ['/blessings', 'Blessings', 'gem', 'blessings'], ['/cards', 'Greeting cards', 'image', 'cards']] },
+  { group: 'Worship', items: [['/prayer', 'Prayer times', 'clock', 'prayer'], ['/dhikr', 'Dhikr counter', 'beads', 'dhikr'], ['/istighfar', 'Istighfar', 'leaf', 'istighfar'], ['/adhkar', 'Adhkar & duas', 'moon', 'adhkar'], ['/qibla', 'Qibla', 'compass', 'qibla'], ['/calendar', 'Calendar', 'cal', 'calendar'], ['/fasting', 'Fasting', 'fast', 'fasting'], ['/timetable', 'Monthly timetable', 'cal', 'timetable'], ['/salah-guide', 'How to pray', 'hands', 'salahguide'], ['/ramadan', 'Ramadan', 'moon', 'ramadan'], ['/hajj', 'Hajj & Umrah', 'kaaba', 'hajj']] },
+  { group: 'Knowledge', items: [['/quran', 'Quran', 'quran', 'quran'], ['/ayah-finder', 'Ayah finder', 'search', 'ayahfinder'], ['/tafsir', 'Tafsir', 'book', 'tafsir'], ['/hadith', 'Hadith', 'scroll', 'hadith'], ['/seerah', 'Seerah & history', 'hourglass', 'seerah'], ['/hifz', 'Hifz', 'brain', 'hifz'], ['/tajweed', 'Tajweed', 'mic', 'tajweed'], ['/learn', 'Learn', 'cap', 'learn'], ['/names', '99 Names', 'star', 'names']] },
+  { group: 'Learn Arabic', items: [['/arabic', 'Learn Qur’anic Arabic', 'quran', 'arabic'], ['/arabic/review', 'Arabic word review', 'retry', 'arabic']] },
+  { group: 'Study', items: [['/study', 'Study hub', 'cap', 'study'], ['/study/pomodoro', 'Pomodoro timer', 'clock', 'study'], ['/study/focus', 'Deep focus', 'brain', 'study'], ['/study/tasks', 'Tasks & exams', 'check', 'study'], ['/study/cards', 'Flashcards', 'book', 'study'], ['/study/stats', 'Study stats', 'chart', 'study']] },
+  { group: 'Listen', items: [['/audiobooks', 'Audiobooks', 'headphones', 'audiobooks'], ['/nasheeds', 'Nasheeds', 'headphones', 'nasheeds']] },
+  { group: 'Barakah & wealth', items: [['/barakah', 'Barakah', 'sparkle', 'barakah'], ['/wealth', 'Halal wealth', 'wallet', 'wealth'], ['/zakat', 'Zakat calculator', 'coin', 'zakat']] },
+  { group: 'Earn $', items: [['/earn', 'Earn', 'dollar'], ['/referrals', 'Refer & earn', 'gift'], ['/wallet', 'Wallet', 'wallet'], ['/freelance', 'Freelance', 'briefcase'], ['/market', 'Marketplace', 'bag'], ['/jobs', 'Jobs', 'briefcase'], ['/audio', 'Nasheed studio', 'mic']] },
   { group: 'Scholars', items: [['/scholars', 'Ask a scholar', 'cap'], ['/scholar', 'Scholar portal', 'shield']] },
   { group: 'Heart', items: [['/akhirah', 'Akhirah reminders', 'hourglass', 'akhirah'], ['/insights', 'Insights', 'chart', 'insights'], ['/memory', 'Alim’s memory', 'layers', 'memory']] },
-  { group: 'Ummah', items: [['/ummah', 'Ummah', 'users', 'ummah'], ['/jummah', 'Jummah', 'mosque', 'ummah'], ['/mosques', 'Mosque map', 'pin', 'mosques'], ['/ummah/feed', 'Community', 'chat', 'ummah'], ['/zakat', 'Zakat calculator', 'coin', 'zakat']] },
+  { group: 'Ummah', items: [['/ummah', 'Ummah', 'users', 'ummah'], ['/jummah', 'Jummah', 'mosque', 'ummah'], ['/mosques', 'Mosque map', 'pin', 'mosques'], ['/ummah/feed', 'Community', 'chat', 'ummah'], ['/halal-places', 'Halal food near me', 'bag', 'halalplaces']] },
   { group: '', items: [['/feedback', 'Send feedback', 'chat'], ['/settings', 'Settings', 'gear']] }
 ];
+// Pages still being built are hidden from the menu until their module ships.
+const PENDING = new Set([]);
+export const SECTIONS = SECTIONS_ALL.map(g => ({ ...g, items: g.items.filter(it => !PENDING.has(it[0])) })).filter(g => g.items.length);
+
 export const sectionOn = key => !key || state.user?.settings?.sections?.[key] !== false;
 
 export const route = () => (location.hash.replace(/^#/, '') || '/');
+// In-app navigation memory: back buttons pop history (no forward-push loops); menu taps mark the page as a top-level destination.
+export const NAV = { depth: 0, fromMenu: null };
+if (typeof window !== 'undefined') {
+  window.addEventListener('hashchange', () => { NAV.depth++; });
+  document.addEventListener('click', e => {
+    const b = e.target.closest?.('[data-back]'); if (b) { e.preventDefault(); e.stopPropagation(); if (NAV.depth > 0 && history.length > 1) { NAV.depth -= 2; history.back(); } else go(b.dataset.back); return; }
+    const n = e.target.closest?.('.nav-item[data-go],.newchat[data-go]'); if (n) NAV.fromMenu = '#' + n.dataset.go;
+  }, true);
+}
 export const go = h => { if (location.hash === '#' + h || (h === '/' && !location.hash)) window.dispatchEvent(new Event('hashchange')); else location.hash = h; };
 
 export function bindGo(root) { $$('[data-go]', root).forEach(b => b.addEventListener('click', e => { e.preventDefault(); go(b.dataset.go); })); }
@@ -249,7 +269,8 @@ export function shell(title, { back = null, right = '', flush = false, noPad = f
     renderDrawer();
   } else renderDrawerActive();
   const tb = $('#topbar');
-  tb.innerHTML = `${back ? `<button class="iconbtn" data-go="${back}" aria-label="Back">${I.back}</button>` : `<button class="iconbtn" id="openDrawer" aria-label="Open menu">${I.menu}</button>`}
+  if (back && NAV.fromMenu === location.hash) back = null; // opened from the menu → show the menu button, not a back chain
+  tb.innerHTML = `${back ? `<button class="iconbtn" data-back="${back}" aria-label="Back">${I.back}</button>` : `<button class="iconbtn" id="openDrawer" aria-label="Open menu">${I.menu}</button>`}
     <div class="title">${title}</div>
     <div class="right">${right}${/^\/(profile|u\/|premium|creator|advertise|admin|explore|stories|activity|messages|notifications|mosques|zakat|settings|create|earn|referrals|wallet|market|jobs|freelance|fundraiser|communities|product|audio)/.test(route()) ? '' : `<button class="iconbtn nasheed-btn" id="nasheedBtn" aria-label="Toggle nasheed">${nasheedIcon()}</button>`}</div>`;
   $('#openDrawer')?.addEventListener('click', openDrawer);
@@ -263,6 +284,7 @@ function renderDrawer() {
   const d = $('#drawer'); const u = state.user;
   d.innerHTML = `<div class="brand"><span class="logo">${I.logo}</span>Shukr</div>
     <button class="newchat" data-go="/chat/new">${I.edit} New chat with Alim</button>
+    ${!(matchMedia('(display-mode: standalone)').matches || navigator.standalone) && !LS.get('installed', false) ? `<button class="ins-drawer" id="drInstall">${I.download}<span><b>Install the app</b><small>Add Shukr to your home screen</small></span></button>` : ''}
     <div class="drawer-scroll">
       ${SECTIONS.map(g => { const items = g.items.filter(it => sectionOn(it[3])); if (!items.length) return ''; return `${g.group ? `<div class="nav-group">${g.group}</div>` : '<div class="divider"></div>'}${items.map(([p, l, ic]) => `<button class="nav-item" data-go="${p}" data-path="${p}">${I[ic]}${l}</button>`).join('')}`; }).join('')}
       ${u?.developer ? `<div class="nav-group">Developer</div><button class="nav-item" data-go="/admin" data-path="/admin">${I.chart}Dashboard</button>` : ''}
@@ -270,6 +292,7 @@ function renderDrawer() {
     </div>
     <div class="foot" data-go="/profile" style="cursor:pointer"><div class="avatar">${esc((u?.name || u?.email || '?')[0].toUpperCase())}</div><div style="flex:1;min-width:0"><div style="font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(u?.name || u?.email || '')}</div><div class="faint small">${esc(hijri())}</div></div></div>`;
   $$('[data-go]', d).forEach(b => b.addEventListener('click', e => { e.preventDefault(); closeDrawer(); go(b.dataset.go); }));
+  const di = $('#drInstall', d); if (di) di.onclick = () => { closeDrawer(); setTimeout(() => window.shukrInstall?.(), 350); };
   renderDrawerActive(); loadChatList();
 }
 export function refreshDrawer() { if ($('#drawer')) renderDrawer(); }
@@ -289,7 +312,7 @@ export async function loadChatList() {
     renderDrawerActive();
   } catch {}
 }
-export function openDrawer() { $('#drawer')?.classList.add('open'); $('#scrim')?.classList.add('open'); }
+export function openDrawer() { $('#drawer')?.classList.add('open'); $('#scrim')?.classList.add('open'); if (!openDrawer.w && state.user?.settings?.lat != null) { openDrawer.w = 1; fetch('/api/worship-plus/halal/warm', { method: 'POST', credentials: 'same-origin' }).catch(() => {}); } }
 export function closeDrawer() { $('#drawer')?.classList.remove('open'); $('#scrim')?.classList.remove('open'); }
 
 // ---------- Bottom sheet ----------
@@ -384,8 +407,8 @@ export async function recordAudio({ onLevel, maxMs = 120000, hq = false, voice =
   const timer = setTimeout(() => rec.state !== 'inactive' && rec.stop(), maxMs);
   return { stop: () => { clearTimeout(timer); if (rec.state !== 'inactive') rec.stop(); return done; }, cancel: () => { clearTimeout(timer); rec.onstop = null; try { rec.stop(); } catch {} stream.getTracks().forEach(t => t.stop()); }, done };
 }
-export async function transcribe(blob, lang, prompt) {
-  const qs = new URLSearchParams(); if (lang) qs.set('lang', lang); if (prompt) qs.set('prompt', String(prompt).slice(0, 300));
+export async function transcribe(blob, lang, prompt, fast) {
+  const qs = new URLSearchParams(); if (lang) qs.set('lang', lang); if (prompt) qs.set('prompt', String(prompt).slice(0, 300)); if (fast) { qs.set('fix', '0'); qs.set('fast', '1'); }
   const r = await fetch('/api/stt' + (qs.toString() ? '?' + qs : ''), { method: 'POST', headers: { 'Content-Type': blob.type || 'audio/webm' }, body: blob, credentials: 'same-origin' });
   const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Transcription failed'); return j.text || '';
 }

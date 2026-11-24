@@ -21,7 +21,7 @@ export async function inboxBadge(bar){
 setInterval(()=>{const b=document.querySelector('.social-tabbar');if(b&&!document.hidden)inboxBadge(b);},45000);
 export const inboxSegHTML=section=>`<nav class="social-seg" aria-label="Inbox"><a href="#/notifications" ${section==='notifications'?'aria-current="page"':''}>Notifications</a><a href="#/messages" ${section==='messages'?'aria-current="page"':''}>Messages</a><a href="#/activity" ${section==='activity'?'aria-current="page"':''}>Activity</a></nav>`;
 export const socialLinks=socialTabs.map(([url,label])=>[url,label]);
-const local=s=>typeof s==='string'&&(/^\/media\/(fyp|house)\/[a-zA-Z0-9_./-]+$/.test(s)||/^\/ugc\/[a-f0-9-]{36}\.[a-z0-9]{3,4}$/.test(s))&&!s.includes('..')?escAttr(s):'';
+const local=s=>typeof s==='string'&&(/^\/media\/(fyp|house|jannah)\/[a-zA-Z0-9_./-]+$/.test(s)||/^\/ugc\/[a-f0-9-]{36}\.[a-z0-9]{3,4}$/.test(s))&&!s.includes('..')?escAttr(s):'';
 const thumb=x=>{const m=x.media||{};if(x.format==='reel'&&!m.poster&&m.ugc)return `<video src="${local(m.src)}#t=0.5" muted playsinline preload="metadata"></video>`;return `<img src="${local(m.poster||m.src||m.slides?.[0]?.src)}" alt="${escAttr(m.alt||x.title)}" loading="lazy">`;};
 const empty=(title,body)=>`<div class="empty"><h3>${esc(title)}</h3><p>${esc(body)}</p></div>`;
 export async function viewSocialHub(section,query=new URLSearchParams()){

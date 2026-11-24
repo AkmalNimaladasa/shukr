@@ -100,19 +100,21 @@ export async function viewMosqueMap(query) {
   let pos = here();
   if (!pos) { p.innerHTML = empty('mosque', 'Set your location to see mosques near you.', `<div style="margin-top:14px"><button class="btn accent" id="loc">${I.pin} Use my location</button></div>`); $('#loc').onclick = () => locate().then(() => viewMosqueMap(query)).catch(e => toast(e.message)); return; }
   let rad = LS.get('mqRad', 5000), filt = query?.get?.('jummah') === '1' ? 'jummah' : 'all', lang = '';
-  p.innerHTML = `<div class="mq-map-wrap"><div id="mqMap" class="mq-map"></div><button class="mq-fab" id="mqAdd" aria-label="Add a mosque">${I.plus} Add mosque</button></div>
+  p.innerHTML = `<div class="mq-map-wrap"><div id="mqMap" class="mq-map"></div><button class="mq-fab" id="mqAdd" aria-label="Add a mosque">${I.plus} Add mosque</button><button class="mq-locate" id="mqLocate" aria-label="Show my live location"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8"/></svg></button></div>
     <div class="mq-tools"><div class="seg sm">${[2000, 5000, 10000, 20000].map(r => `<button data-r="${r}" class="${r === rad ? 'on' : ''}">${r / 1000} km</button>`).join('')}</div>
       <div class="chips" style="margin-top:8px"><button class="chip ${filt === 'all' ? 'on' : ''}" data-f="all">All</button><button class="chip ${filt === 'jummah' ? 'on' : ''}" data-f="jummah">${I.clock} Jummah times</button><select class="chip" id="mqLang"><option value="">Any language</option></select></div>
       <a class="mq-gsearch" href="https://www.google.com/maps/search/mosque/@${pos.lat},${pos.lng},14z" target="_blank" rel="noopener">${I.external} Also search mosques on Google Maps</a></div>
     <div id="mqList" class="mq-list">${loadingHTML('Finding mosques…')}</div>
     <div class="faint small mq-credit">Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors · Jummah details by the Shukr community</div>`;
-  let ML, map, markers = [], data = [];
+  let ML, map, markers = [], data = [], meMk = null, watchId = null, follow = false, loadedAt = { ...pos };
+  onCleanup(() => { if (watchId != null) navigator.geolocation?.clearWatch(watchId); });
   try { ML = await loadMapLibre(); } catch (e) { toast(e.message); }
   if (!alive) return;
   if (ML) {
     map = new ML.Map({ container: $('#mqMap', p), style: state.flags?.mapStyle || 'https://tiles.openfreemap.org/styles/liberty', center: [pos.lng, pos.lat], zoom: 13, attributionControl: false });
     map.addControl(new ML.AttributionControl({ compact: true }), 'bottom-left');
-    const me = document.createElement('div'); me.className = 'mq-me'; new ML.Marker({ element: me }).setLngLat([pos.lng, pos.lat]).addTo(map);
+    const me = document.createElement('div'); me.className = 'mq-me'; meMk = new ML.Marker({ element: me }).setLngLat([pos.lng, pos.lat]).addTo(map);
+    map.on('dragstart', () => { follow = false; $('#mqLocate', p)?.classList.remove('follow'); });
     onCleanup(() => { try { map.remove(); } catch {} });
   }
   const pinEl = m => { const e = document.createElement('div'); e.className = 'mq-pin' + (m.jummah?.length ? ' j' : '') + (m.goers ? ' hot' : ''); e.innerHTML = `<span>${I.mosque}</span>`; return e; };
@@ -124,17 +126,34 @@ export async function viewMosqueMap(query) {
     if (map) { markers.forEach(mk => mk.remove()); markers = list.map(m => new ML.Marker({ element: pinEl(m), anchor: 'bottom' }).setLngLat([m.lng, m.lat])
       .setPopup(new ML.Popup({ offset: 30, closeButton: false }).setHTML(`<b>${esc(m.name)}</b><br>${jText(m).map(esc).join('<br>') || 'No Jummah time yet'}<br><a href="#/mosque/${encodeURIComponent(m.id)}">Details</a> · <a href="${escAttr(gPlace(m))}" target="_blank" rel="noopener">Google Maps</a>`)).addTo(map)); }
   }
-  async function load() {
-    $('#mqList', p).innerHTML = loadingHTML('Finding mosques…');
+  async function load(live) {
+    if (!live) $('#mqList', p).innerHTML = loadingHTML('Finding mosques…');
     try { const r = await api(`/ummah/mosques?lat=${pos.lat}&lng=${pos.lng}&r=${rad}`); if (!alive) return; data = r.mosques;
       const sel = $('#mqLang', p); if (sel.options.length < 2) sel.innerHTML += r.langs.map(l => `<option>${esc(l)}</option>`).join('');
-      if (map) map.jumpTo({ center: [pos.lng, pos.lat], zoom: rad <= 2000 ? 14.5 : rad <= 5000 ? 13 : rad <= 10000 ? 12 : 11 });
+      if (map && !live) map.jumpTo({ center: [pos.lng, pos.lat], zoom: rad <= 2000 ? 14.5 : rad <= 5000 ? 13 : rad <= 10000 ? 12 : 11 });
       draw();
     } catch (e) { if (alive) $('#mqList', p).innerHTML = `<div class="empty small">${esc(e.message)}</div>`; }
   }
   $$('[data-r]', p).forEach(b => b.onclick = () => { rad = +b.dataset.r; LS.set('mqRad', rad); $$('[data-r]', p).forEach(x => x.classList.toggle('on', x === b)); load(); });
   $$('[data-f]', p).forEach(b => b.onclick = () => { filt = b.dataset.f; $$('[data-f]', p).forEach(x => x.classList.toggle('on', x === b)); draw(); });
   $('#mqLang', p).onchange = e => { lang = e.target.value; draw(); };
+  // Live GPS: tap to start following your real-time position; mosques reload when you move more than ~1/4 of the radius.
+  const dist = (a, b) => { const R = 6371e3, t = Math.PI / 180, dLa = (b.lat - a.lat) * t, dLo = (b.lng - a.lng) * t; const h = Math.sin(dLa / 2) ** 2 + Math.cos(a.lat * t) * Math.cos(b.lat * t) * Math.sin(dLo / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(h)); };
+  $('#mqLocate', p).onclick = () => {
+    const btn = $('#mqLocate', p);
+    if (!navigator.geolocation) return toast('Location isn’t available on this device');
+    follow = true; btn.classList.add('follow', 'busy');
+    if (map) map.easeTo({ center: [pos.lng, pos.lat], zoom: Math.max(map.getZoom(), 14) });
+    if (watchId != null) return;
+    watchId = navigator.geolocation.watchPosition(g => {
+      if (!alive) return; btn.classList.remove('busy');
+      pos = { lat: g.coords.latitude, lng: g.coords.longitude };
+      if (meMk) meMk.setLngLat([pos.lng, pos.lat]);
+      if (map && follow) map.easeTo({ center: [pos.lng, pos.lat], duration: 600 });
+      if (dist(pos, loadedAt) > Math.max(300, rad / 4)) { loadedAt = { ...pos }; load(true); }
+    }, e => { btn.classList.remove('busy', 'follow'); watchId = null; toast(e.code === 1 ? 'Allow location access to see where you are' : 'Couldn’t get your location — try again outdoors'); },
+    { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
+  };
   $('#mqAdd', p).onclick = () => { const c = map ? map.getCenter() : null; addMosque(c ? { lat: c.lat, lng: c.lng } : pos); };
   load();
 }
@@ -199,6 +218,16 @@ export async function viewJummah() {
   p.innerHTML = `<div class="jm-hero"><div class="jm-day">${today ? 'Today is Jumu‘ah' : 'Next Jumu‘ah'}</div><div class="jm-date">${d.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' })}</div>
       <div class="jm-prog"><div class="jm-pbar"><i id="jmBar"></i></div><span id="jmCount"></span></div></div>
     <div class="card jm-sun"><h3>${I.mosque} Sunnahs of Jumu‘ah</h3><div class="faint small" style="margin-bottom:6px">Tick them off — your list resets every Friday.</div><div id="jmList">${loadingHTML()}</div></div>
+    <div class="card jm-adhan"><div class="row between" style="align-items:center"><h3 style="margin:0">${I.mosque} Call to prayer (adhan)</h3><label class="toggle"><input type="checkbox" id="jaOn" ${(r.adhanMode || 'sound') === 'adhan' ? 'checked' : ''}><span></span></label></div>
+      <div class="faint small" id="jaSub" style="margin:4px 0 10px">${(r.adhanMode || 'sound') === 'adhan' ? 'On — the real adhan plays at each prayer time you switch on below.' : 'Off — turn on to hear the full adhan at prayer times.'}</div>
+      <div class="ja-now"><button class="ja-play" id="jaPlay" aria-label="Play adhan">${I.play}</button><div class="grow"><b>Play the adhan now</b><div class="faint small" id="jaVoiceSub"></div></div></div>
+      <div id="jaMore" ${(r.adhanMode || 'sound') === 'adhan' ? '' : 'hidden'}>
+        <label class="lbl">Adhan voice</label><select class="input" id="jaVoice"></select>
+        <label class="lbl">Fajr adhan</label><select class="input" id="jaFajr"></select>
+        <label class="lbl">Play adhan for</label><div class="ja-per">${['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'].map(k => { const on = ((r.adhanPer || {})[k] || 'adhan') === 'adhan'; return `<button class="ja-pp ${on ? 'on' : ''}" data-jp="${k}">${I.check}<span>${k === 'dhuhr' ? 'Dhuhr / Jumu‘ah' : k[0].toUpperCase() + k.slice(1)}</span></button>`; }).join('')}</div>
+        <label class="lbl">Volume</label><input type="range" id="jaVol" min="20" max="100" value="${Math.round((r.adhanVolume ?? 1) * 100)}" style="width:100%">
+        <div class="faint small" style="margin-top:8px">The full adhan plays when Shukr is open (or when you tap the prayer notification). When your phone is locked you get a notification — phones don’t let web apps play long audio in the background.</div>
+      </div></div>
     <div class="card"><div class="list-item"><div class="grow"><b>Jummah alert</b><div class="faint small">Closest mosques, khutbah times & languages on Friday</div></div><label class="toggle"><input type="checkbox" id="jOn" ${r.jummah !== false ? 'checked' : ''}><span></span></label></div>
       <label class="lbl">Notify me before Dhuhr</label><div class="seg">${[30, 60, 90, 120, 180].map(n => `<button data-jl="${n}" class="${(r.jummahLead || 60) === n ? 'on' : ''}">${n < 60 ? n + ' min' : n / 60 + ' h'}</button>`).join('')}</div>
       <label class="lbl">Search radius</label><div class="seg">${[2000, 5000, 10000, 20000].map(n => `<button data-jr="${n}" class="${(r.jummahRadius || 5000) === n ? 'on' : ''}">${n / 1000} km</button>`).join('')}</div>
@@ -221,6 +250,22 @@ export async function viewJummah() {
   $('#jOn').onchange = e => saveR({ jummah: e.target.checked });
   $$('[data-jl]', p).forEach(b => b.onclick = () => { saveR({ jummahLead: +b.dataset.jl }); $$('[data-jl]', p).forEach(x => x.classList.toggle('on', x === b)); });
   $$('[data-jr]', p).forEach(b => b.onclick = () => { saveR({ jummahRadius: +b.dataset.jr }); $$('[data-jr]', p).forEach(x => x.classList.toggle('on', x === b)); loadList(+b.dataset.jr); });
+  // ---- Adhan card ----
+  { const list = await adhanVoices(), R = () => state.user.settings.reminders || {};
+    const opts = sel => list.map(v => `<option value="${v.id}" ${v.id === sel ? 'selected' : ''}>${esc(v.label)} — ${esc(v.sub)}</option>`).join('');
+    $('#jaVoice', p).innerHTML = opts(R().adhanVoice || 'madinah'); $('#jaFajr', p).innerHTML = opts(R().fajrVoice || 'fajr-ramadan');
+    const vsub = () => { const v = list.find(x => x.id === $('#jaVoice', p).value) || list[0]; $('#jaVoiceSub', p).textContent = `${v.label} · ${Math.round(v.secs / 60 * 10) / 10} min`; }; vsub();
+    const playing = () => document.documentElement.classList.contains('adhan-playing');
+    const setBtn = () => { const b = $('#jaPlay', p); if (b) { b.innerHTML = playing() ? I.stop : I.play; b.classList.toggle('on', playing()); } };
+    $('#jaPlay', p).onclick = async () => { if (playing()) { stopAdhan(); setBtn(); return; } await playAdhan($('#jaVoice', p).value, { prayer: nextFriday().today ? 'jumu‘ah' : null }); setBtn(); };
+    const mo = new MutationObserver(setBtn); mo.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] }); onCleanup(() => mo.disconnect());
+    $('#jaOn', p).onchange = async e => { const on = e.target.checked; await saveR({ adhanMode: on ? 'adhan' : 'sound', ...(on ? { prayers: true } : {}) }); $('#jaMore', p).hidden = !on;
+      $('#jaSub', p).textContent = on ? 'On — the real adhan plays at each prayer time you switch on below.' : 'Off — turn on to hear the full adhan at prayer times.'; vibrate(12); toast(on ? 'Adhan on' : 'Adhan off'); };
+    $('#jaVoice', p).onchange = e => { saveR({ adhanVoice: e.target.value }); vsub(); };
+    $('#jaFajr', p).onchange = e => saveR({ fajrVoice: e.target.value });
+    $('#jaVol', p).onchange = e => saveR({ adhanVolume: +e.target.value / 100 });
+    $$('[data-jp]', p).forEach(b => b.onclick = async () => { const on = !b.classList.contains('on'); b.classList.toggle('on', on); vibrate(8); await saveR({ adhanPer: { ...(R().adhanPer || {}), [b.dataset.jp]: on ? 'adhan' : 'sound' } }); });
+  }
   $('#jTest').onclick = async () => { try { await api('/push/test', { body: { kind: 'jummah' } }); toast('Test Jummah alert sent'); } catch (e) { toast(e.message); } };
   $('#loc')?.addEventListener('click', () => locate().then(viewJummah).catch(e => toast(e.message)));
   async function loadList(rad = r.jummahRadius || 5000) {

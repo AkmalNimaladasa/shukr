@@ -9,7 +9,7 @@ const suggestions = [
 const dateLabel = (day, options) => new Date(day + 'T12:00:00Z').toLocaleDateString([], { timeZone: 'UTC', ...options });
 
 export async function viewHabits() {
-  const p = shell('Habits');
+  const p = shell('Habit tracker');
   p.innerHTML = loadingHTML('Loading your habits…');
   let data, selected = '', alive = true, busy = false, request = 0;
   onCleanup(() => { alive = false; request++; });
