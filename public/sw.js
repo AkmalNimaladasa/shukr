@@ -1,6 +1,6 @@
 // Shukr service worker — network-first for the app shell (never serves stale code when online), cache fallback offline; push reminders
-const V = 'shukr-1795516067';
-const SHELL = ['/', '/app.bundle.js?v=1795516067', '/app.bundle.css?v=1795516067', '/vendor/adhan.js', '/manifest.webmanifest', '/icons/icon-192.png',
+const V = 'shukr-1795516266';
+const SHELL = ['/', '/app.bundle.js?v=1795516266', '/app.bundle.css?v=1795516266', '/vendor/adhan.js', '/manifest.webmanifest', '/icons/icon-192.png',
   '/data/adhkar.json', '/data/names.json', '/data/ayat.json', '/data/duas.json', '/data/hadith40.json', '/data/akhirah.json', '/data/quran-meta.json', '/data/hadith-books.json', '/data/quran-translations.json', '/data/audiobooks.json'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(V).then(c => Promise.all(SHELL.map(u => c.add(u).catch(() => {})))).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== V).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
