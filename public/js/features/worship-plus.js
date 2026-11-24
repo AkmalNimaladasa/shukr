@@ -29,9 +29,10 @@ export async function viewIstighfar() {
     </div>
     <div class="grid3"><div class="kpi"><div class="n" id="wToday">0</div><div class="l">Today</div></div><div class="kpi"><div class="n" id="wTotal">0</div><div class="l">This week</div></div><div class="kpi"><div class="n" id="wDays">0</div><div class="l">Goal days (30d)</div></div></div>
     <div class="card"><h3>Last 30 days</h3><div class="wp-bars" id="wBars"></div></div>
+    ${gemHTML(data.gem, AR, EN)}
     <div class="card"><h3>Words of istighfar</h3><p class="muted small">Tap one to make it your counter phrase.</p><div id="wForms"></div></div>
-    <div class="card"><h3>What istighfar opens up</h3>${benefits}</div>
     <button class="btn ghost block" id="wAsk">${I.chat} Ask Alim about istighfar</button>`;
+  bindGem(p, data, id => { s.phrase = id; api('/worship-plus/prefs', { method: 'PUT', body: { phrase: id } }).catch(() => {}); paintPhrase(); paintStats(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
   const paintPhrase = () => { const f = F(s.phrase); $('#wAr').textContent = f.ar.length > 60 ? f.ar.slice(0, 60).replace(/\s\S*$/, '') + ' …' : f.ar; $('#wTr').textContent = f.short || f.tr; };
   function paintStats() {
     const n = s.count + pending, t = s.target;
@@ -195,3 +196,42 @@ export const routes = [
   [/^\/salah-guide$/, () => viewSalahGuide(), 'salahguide'],
   [/^\/halal-places$/, () => viewHalalPlaces(), 'halalplaces'],
 ];
+
+
+// ===== Istighfar & Tahajjud secrets — the gem of Shukr (Qur'an + sahih hadith; weak narrations labelled) =====
+function gemHTML(G, AR, EN) {
+  if (!G) return '';
+  const day = new Date().toISOString().slice(0, 10), done = LS.get('ist.plan.' + day, {});
+  const n = G.plan.filter(x => done[x.id]).length;
+  const ay = b => `<div class="ar ist-ar" lang="ar">${b.a.map(a => esc(AR[b.s - 1][a - 1]) + ` ﴿${a.toLocaleString('ar-EG')}﴾`).join(' ')}</div><p class="ist-en">${b.a.map(a => esc(EN[b.s - 1][a - 1])).join(' ')}</p><div class="ist-ref">Qur’an ${b.s}:${b.a[0]}${b.a.length > 1 ? '–' + b.a[b.a.length - 1] : ''}</div>`;
+  return `<section class="ist-gem">
+    <div class="ist-hero"><div class="ist-gemic">${I.gem || I.sparkle}</div><small>The gem of Shukr</small><h2>Istighfar & Tahajjud secrets</h2>
+      <p>“Ask your Lord for forgiveness… He will send rain upon you in abundance, give you wealth and children, and give you gardens and rivers.”</p><span>Nuh 71:10–12</span></div>
+    <div class="ist-card"><h3>${I.calendar || I.check} Today’s istighfar plan <b class="ist-n" id="istN">${n}/${G.plan.length}</b></h3>
+      <div class="ist-pbar"><i id="istBar" style="width:${n / G.plan.length * 100}%"></i></div>
+      ${G.plan.map(x => `<label class="ist-step ${done[x.id] ? 'on' : ''}"><input type="checkbox" data-ip="${x.id}" ${done[x.id] ? 'checked' : ''}><span class="ist-chk">${I.check}</span><span class="grow"><small>${esc(x.time)}</small><b>${esc(x.what)}</b><em>${esc(x.why)}</em></span><button class="ist-use" data-use="${x.formula}" type="button">Use</button></label>`).join('')}
+      <p class="ist-tip">Minimum that works: <b>100 a day</b>, like the Prophet ﷺ. Ambitious: 1,000 a day spread across your day. Best time: <b>sahar</b> — the last hour before Fajr.</p></div>
+    <div class="ist-card"><h3>${I.quran || I.book} What the Qur’an promises</h3>${G.promise.map((b, i) => `<details class="ist-d" ${i === 0 ? 'open' : ''}><summary>${esc(b.head)}</summary>${ay(b)}<p class="ist-note">${esc(b.note)}</p></details>`).join('')}</div>
+    <div class="ist-card"><h3>${I.moon} Tahajjud — the hidden door</h3>${G.tahajjud.map(([h, t]) => `<div class="ist-row"><b>${esc(h)}</b><p>${esc(t)}</p></div>`).join('')}
+      <button class="btn accent block" id="istTah" style="margin-top:10px">${I.bell || I.clock} Calculate tonight’s last third</button><div id="istTahOut"></div></div>
+    <div class="ist-card"><h3>${I.key || I.check} How to make it work — 5 conditions</h3>${G.conditions.map(([h, t], i) => `<div class="ist-cond"><span>${i + 1}</span><div><b>${esc(h)}</b><p>${esc(t)}</p></div></div>`).join('')}</div>
+    <div class="ist-card"><h3>${I.users} The early Muslims knew</h3>${G.salaf.map(x => `<blockquote class="ist-q"><b>${esc(x.who)}</b><p>${esc(x.text)}</p><small>${esc(x.src)}</small></blockquote>`).join('')}</div>
+    <div class="ist-card"><h3>${I.star} From the Prophet ﷺ</h3>${G.hadith.map(([t, r]) => `<div class="ist-h"><p>${esc(t)}</p><small>${esc(r)}</small></div>`).join('')}</div>
+    <div class="ist-honest"><b>${I.info || 'ⓘ'} Honest note</b><p>${esc(G.honesty)}</p></div>
+  </section>`;
+}
+function bindGem(p, data, usePhrase) {
+  const G = data.gem; if (!G) return;
+  const day = new Date().toISOString().slice(0, 10), key = 'ist.plan.' + day;
+  $$('[data-ip]', p).forEach(c => c.onchange = () => { const d = LS.get(key, {}); d[c.dataset.ip] = c.checked; LS.set(key, d); c.closest('.ist-step').classList.toggle('on', c.checked);
+    const n = G.plan.filter(x => d[x.id]).length; $('#istN', p).textContent = `${n}/${G.plan.length}`; $('#istBar', p).style.width = n / G.plan.length * 100 + '%';
+    if (c.checked) vibrate(12); if (n === G.plan.length) toast('MashaAllah — full istighfar plan done today 🤍'); });
+  $$('[data-use]', p).forEach(b => b.onclick = e => { e.preventDefault(); usePhrase(b.dataset.use); toast('Counter set to this phrase'); });
+  const tb = $('#istTah', p); if (tb) tb.onclick = async () => {
+    const out = $('#istTahOut', p); out.innerHTML = '<p class="faint small">Calculating…</p>';
+    try { const t = await api('/prayertimes'); const tm = t.times || t.days?.[0]?.times || {}; const toMin = v => { const m = String(v || '').match(/(\d{1,2}):(\d{2})/); return m ? +m[1] * 60 + +m[2] : null; };
+      const mg = toMin(tm.maghrib || tm.Maghrib), fj = toMin(tm.fajr || tm.Fajr); if (mg == null || fj == null) throw new Error('no times');
+      const night = (fj + 1440 - mg) % 1440, start = (mg + Math.round(night * 2 / 3)) % 1440, f = m => `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+      out.innerHTML = `<div class="ist-tah"><div><small>Last third starts</small><b>${f(start)}</b></div><div><small>Fajr</small><b>${f(fj)}</b></div><div><small>Night length</small><b>${Math.floor(night / 60)}h ${night % 60}m</b></div></div><p class="faint small">Set an alarm for ${f(start)}. Pray 2 + 2 rakʿat and Witr, then istighfar until Fajr.</p>`;
+    } catch { out.innerHTML = '<p class="faint small">Set your location in Settings to calculate prayer times.</p>'; } };
+}

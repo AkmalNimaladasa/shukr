@@ -2,7 +2,8 @@
 import { $, $$, esc, escAttr, I, api, state, shell, go, sheet, toast, onCleanup, loadingHTML } from './core.js';
 import { checkout } from './views-money.js';
 
-const av = (x, cls = '') => `<span class="sx-av ${cls}">${x?.avatar ? `<img src="${escAttr(x.avatar)}" alt="" loading="lazy" decoding="async">` : esc(((x?.name || x?.username || '?')[0] || '?').toUpperCase())}</span>`;
+const avInit = x => esc(((x?.name || x?.username || '?')[0] || '?').toUpperCase());
+const av = (x, cls = '') => `<span class="sx-av ${cls}">${x?.avatar ? `<img src="${escAttr(x.avatar)}" alt="" loading="lazy" decoding="async" onerror="this.replaceWith(document.createTextNode('${avInit(x)}'))">` : avInit(x)}</span>`;
 const ago = t => { const s = (Date.now() - new Date(t)) / 1000; return s < 60 ? 'now' : s < 3600 ? Math.floor(s / 60) + 'm' : s < 86400 ? Math.floor(s / 3600) + 'h' : s < 604800 ? Math.floor(s / 86400) + 'd' : Math.floor(s / 604800) + 'w'; };
 const money = (n, c = 'USD') => { try { return new Intl.NumberFormat(undefined, { style: 'currency', currency: c, maximumFractionDigits: n % 1 ? 2 : 0 }).format(n); } catch { return c + ' ' + n; } };
 async function uploadFile(f) { const r = await fetch('/api/social/media', { method: 'POST', headers: { 'Content-Type': f.type }, body: f, credentials: 'same-origin' }); const j = await r.json(); if (!r.ok) throw new Error(j.error || 'Upload failed'); return j.media; }
@@ -13,8 +14,9 @@ export async function storiesTrayHTML() {
   const me = state.user || {};
   const key = g => g.username || (g.userId ? 'id:' + g.userId : '');
   const item = (g, label, extra = '') => `<button class="sty-item" data-story-user="${escAttr(key(g))}" aria-label="${escAttr(label)} story"><span class="sty-ring ${g.allSeen ? 'seen' : ''}"><span class="sty-gap">${av(g)}</span></span>${extra}<small>${esc(label)}</small></button>`;
+  if (d.mine && !d.mine.avatar && me.id) d.mine.avatar = `/api/avatar/${me.id}`;
   const mine = d.mine ? item(d.mine, 'Your story', `<a class="sty-plus" href="#/create?type=story" aria-label="Add to your story" onclick="event.stopPropagation()">+</a>`)
-    : `<a class="sty-item" href="#/create?type=story" aria-label="Add a story"><span class="sty-ring none"><span class="sty-gap">${av({ name: me.name, avatar: me.avatar })}</span></span><i class="sty-plus">+</i><small>Your story</small></a>`;
+    : `<a class="sty-item" href="#/create?type=story" aria-label="Add a story"><span class="sty-ring none"><span class="sty-gap">${av({ name: me.name, avatar: me.id ? `/api/avatar/${me.id}?v=${encodeURIComponent(me.avatarV || me.updated_at || '1')}` : null })}</span></span><i class="sty-plus">+</i><small>Your story</small></a>`;
   // unseen first, then seen (Instagram order)
   const tray = [...d.tray].sort((a, b) => (a.allSeen ? 1 : 0) - (b.allSeen ? 1 : 0));
   return `<div class="sty-tray" role="list">${mine}${tray.filter(g => key(g)).map(g => item(g, g.username || g.name)).join('')}</div>`;
